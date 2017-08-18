@@ -7,7 +7,7 @@ const expect = chai.expect
 chai.use(sinonChai)
 
 const server = require('./mock-server')
-const QuidditchClient = require('../dist/quidditch.js')
+const { QuidditchClient } = require('../dist/quidditch.js')
 
 const PORT = 9436
 const WS_URL = 'ws://localhost:9436'

@@ -16,7 +16,7 @@
   },
   "nyc": {
     "include": [
-      "src/*.js"
+      "src/**.js"
     ],
     "sourceMap": false,
     "instrument": false

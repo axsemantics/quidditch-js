@@ -1,5 +1,6 @@
 /* global WebSocket */
 import EventEmitter from 'events'
+import Delta from './ot/delta.js'
 
 const defer = function () {
 	const deferred = {}
@@ -10,7 +11,7 @@ const defer = function () {
 	return deferred
 }
 
-export default class QuidditchClient extends EventEmitter {
+class QuidditchClient extends EventEmitter {
 	constructor (url, config) {
 		super()
 		const defaultConfig = {
@@ -160,12 +161,6 @@ export default class QuidditchClient extends EventEmitter {
 		this.emit('joined', message[1])
 	}
 
-	_resubscribe () {
-		for (let args of Object.values(this._subscriptions)) {
-			this.subscribe(args)
-		}
-	}
-
 	_handleGeneric (message) {
 		const req = this._popPendingRequest(message[1])
 		if (req === null) return // error already emitted in pop
@@ -190,3 +185,5 @@ export default class QuidditchClient extends EventEmitter {
 		}
 	}
 }
+
+export { Delta, QuidditchClient }

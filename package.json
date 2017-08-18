@@ -1,0 +1,64 @@
+{
+  "name": "quidditch",
+  "version": "0.1.0",
+  "description": "Quidditch Client for the Browser",
+  "main": "dist/quidditch.js",
+  "jsnext:main": "dist/quidditch.es.js",
+  "module": "dist/quidditch.es.js",
+  "scripts": {
+    "build:cjs": "rollup -c rollup.config.cjs.js",
+    "build:es": "rollup -c rollup.config.es.js",
+    "build:iife": "rollup -c rollup.config.iife.js",
+    "build": "npm run build:cjs && npm run build:es && npm run build:iife",
+    "test": "NODE_ENV=test npm run build:cjs && nyc mocha test/*.test.js",
+    "lint": "eslint --ext .js src",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "nyc": {
+    "include": [
+      "src/*.js"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/axsemantics/quidditch-js.git"
+  },
+  "author": "rashfael <sebastian.gepperth@ax-semantics.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/axsemantics/quidditch-js/issues"
+  },
+  "homepage": "https://github.com/axsemantics/quidditch-js#readme",
+  "dependencies": {
+    "ws": "^1.1.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.18.2",
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-external-helpers": "^6.18.0",
+    "babel-plugin-istanbul": "^3.1.2",
+    "babel-plugin-transform-runtime": "^6.7.5",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-es2015-rollup": "^3.0.0",
+    "chai": "^3.5.0",
+    "coveralls": "^2.11.15",
+    "eslint": "^3.9.0",
+    "eslint-config-standard": "^6.0.0",
+    "eslint-friendly-formatter": "^2.0.6",
+    "eslint-loader": "^1.5.0",
+    "eslint-plugin-html": "^1.7.0",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-standard": "^2.0.0",
+    "mocha": "^3.2.0",
+    "mocha-lcov-reporter": "^1.2.0",
+    "nyc": "^10.0.0",
+    "rollup": "^0.41.1",
+    "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-inject": "^2.0.0",
+    "rollup-plugin-node-builtins": "^2.0.0",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^2.8.0"
+  }
+}

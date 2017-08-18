@@ -1,0 +1,16 @@
+.DS_Store
+[Tt]humbs.db
+
+~*
+*.log
+*.log.*
+
+node_modules
+public
+dist
+.nyc_output
+coverage
+
+config.testing.js
+.publish
+.idea

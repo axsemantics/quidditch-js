@@ -17,4 +17,18 @@ describe('Operational Transforms', () => {
 		
 		expect(delta.ops).to.deep.equal([{retain: 5}, {insert: 'foo'}, {delete: 3}])
 	})
+	
+	it('should merge same ops', () => {
+		let delta = new Delta([{retain: 1}])
+		delta.retain(3)
+		expect(delta.ops).to.deep.equal([{retain: 4}])
+		
+		delta = new Delta([{delete: 2}, {insert: 'foo'}])
+		delta.insert('bar')
+		expect(delta.ops).to.deep.equal([{delete: 2}, {insert: 'foobar'}])
+		
+		delta = new Delta([{delete: 5}])
+		delta.delete(2)
+		expect(delta.ops).to.deep.equal([{delete: 7}])
+	})
 })

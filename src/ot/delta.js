@@ -1,6 +1,6 @@
 export default class Delta {
-	constructor () {
-		this.ops = []
+	constructor (ops = []) {
+		this.ops = ops
 	}
 	
 	insert (text) {

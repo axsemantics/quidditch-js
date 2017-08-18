@@ -27,7 +27,8 @@ const mock = {
 		const handlers = {
 			auth: mock.handleAuth,
 			ping: mock.handlePing,
-			join: mock.handleJoin
+			join: mock.handleJoin,
+			'generic:increment': mock.handleIncrement
 		}
 		handlers[message[0]](socket, message)
 	},
@@ -53,6 +54,13 @@ const mock = {
 		}]
 		if (socket.readyState !== 1) // socket still open?
 			return
+		socket.send(JSON.stringify(response))
+	},
+	handleIncrement (socket, message) {
+		expect(message[1]).to.contain.all.keys('number')
+		const response = ['generic:incremented', {
+			number: ++message[1].number
+		}]
 		socket.send(JSON.stringify(response))
 	},
 	handleTimeout (socket, message) {

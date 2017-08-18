@@ -48,4 +48,13 @@ describe('Quidditch Client', () => {
 			done()
 		})
 	})
+	it('should handle a generic call', (done) => {
+		client.call('generic:increment', {number: 3})
+		client.once('message', (message) => {
+			expect(message[0]).to.equal('generic:incremented')
+			expect(message[1]).to.contain.all.keys('number')
+			expect(message[1].number).to.equal(4)
+			done()
+		})
+	})
 })

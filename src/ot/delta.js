@@ -4,6 +4,7 @@ export default class Delta {
 	}
 
 	insert (text) {
+		// TODO canonical op ordering
 		const op = { insert: text }
 		return this.push(op)
 	}
@@ -41,5 +42,26 @@ export default class Delta {
 		}
 		this.ops.push(newOp)
 		return this
+	}
+
+	apply (source) {
+		// TODO range checks
+		const newString = []
+		let sourceIndex = 0
+		for (const op of this.ops) {
+			if (op.retain) {
+				newString.push(source.slice(sourceIndex, sourceIndex + op.retain))
+				sourceIndex += op.retain
+			} else if (op.insert) {
+				newString.push(op.insert)
+			} else if (op.delete) {
+				sourceIndex += op.delete
+			}
+		}
+
+		// retain the remaining string
+		newString.push(source.slice(sourceIndex))
+
+		return newString.join('')
 	}
 }

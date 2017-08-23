@@ -31,4 +31,21 @@ describe('Operational Transforms', () => {
 		delta.delete(2)
 		expect(delta.ops).to.deep.equal([{delete: 7}])
 	})
+
+	it('should apply delta to string', () => {
+		const delta = new Delta([
+			{retain: 6},
+			{delete: 8},
+			{insert: 'Percival Wulfric Brian'}
+		])
+
+		expect(delta.apply('Albus P. W. B. Dumbledore')).to.equal('Albus Percival Wulfric Brian Dumbledore')
+	})
+
+	it('should compose two deltas', () => {
+		const delta1 = new Delta([])
+		const delta2 = new Delta([])
+		
+		const delta3 = delta1.compose(delta2)
+	})
 })

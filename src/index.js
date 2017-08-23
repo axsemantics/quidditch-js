@@ -1,6 +1,7 @@
 /* global WebSocket */
 import EventEmitter from 'events'
 import Delta from './ot/delta.js'
+import OpIterator from './ot/op-iterator.js'
 
 const defer = function () {
 	const deferred = {}
@@ -186,4 +187,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, QuidditchClient }
+export { Delta, QuidditchClient, OpIterator }

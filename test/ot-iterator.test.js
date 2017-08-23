@@ -1,0 +1,74 @@
+/* global describe, beforeEach, it */
+
+const chai = require('chai')
+const sinon = require('sinon')
+const sinonChai = require('sinon-chai')
+const expect = chai.expect
+chai.use(sinonChai)
+
+const { Delta, OpIterator } = require('../dist/quidditch.js')
+
+describe('op iterator', function () {
+	beforeEach(function () {
+		this.delta = new Delta().insert('Hello').retain(3).delete(4)
+	})
+
+	it('hasNext() true', function () {
+		var iter = new OpIterator(this.delta.ops)
+		expect(iter.hasNext()).to.equal(true)
+	})
+
+	it('hasNext() false', function () {
+		var iter = new OpIterator([])
+		expect(iter.hasNext()).to.equal(false)
+	})
+
+	it('peekLength() offset === 0', function () {
+		var iter = new OpIterator(this.delta.ops)
+		expect(iter.peekLength()).to.equal(5)
+		iter.next()
+		expect(iter.peekLength()).to.equal(3)
+		iter.next()
+		expect(iter.peekLength()).to.equal(4)
+	})
+
+	it('peekLength() offset > 0', function () {
+		var iter = new OpIterator(this.delta.ops)
+		iter.next(2)
+		expect(iter.peekLength()).to.equal(5 - 2)
+	})
+
+	it('peekLength() no ops left', function () {
+		var iter = new OpIterator([])
+		expect(iter.peekLength()).to.equal(Infinity)
+	})
+
+	it('peekType()', function () {
+		var iter = new OpIterator(this.delta.ops)
+		expect(iter.peekType()).to.equal('insert')
+		iter.next()
+		expect(iter.peekType()).to.equal('retain')
+		iter.next()
+		expect(iter.peekType()).to.equal('delete')
+		iter.next()
+		expect(iter.peekType()).to.equal('retain')
+	})
+
+	it('next()', function () {
+		var iter = new OpIterator(this.delta.ops)
+		for (var i = 0; i < this.delta.ops.length; i += 1) {
+			expect(iter.next()).to.deep.equal(this.delta.ops[i])
+		}
+		expect(iter.next()).to.deep.equal({ retain: Infinity })
+		expect(iter.next(4)).to.deep.equal({ retain: Infinity })
+		expect(iter.next()).to.deep.equal({ retain: Infinity })
+	})
+
+	it('next(length)', function () {
+		var iter = new OpIterator(this.delta.ops)
+		expect(iter.next(2)).to.deep.equal({ insert: 'He' })
+		expect(iter.next(10)).to.deep.equal({ insert: 'llo' })
+		expect(iter.next(1)).to.deep.equal({ retain: 1 })
+		expect(iter.next(2)).to.deep.equal({ retain: 2 })
+	})
+})

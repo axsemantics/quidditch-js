@@ -1,3 +1,7 @@
+// lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
+
+import Iterator from './op-iterator'
+
 export default class Delta {
 	constructor (ops = []) {
 		this.ops = ops
@@ -63,5 +67,45 @@ export default class Delta {
 		newString.push(source.slice(sourceIndex))
 
 		return newString.join('')
+	}
+
+	chop () {
+		const lastOp = this.ops[this.ops.length - 1]
+		if (lastOp && lastOp.retain) {
+			this.ops.pop()
+		}
+		return this
+	}
+
+	compose (otherDelta) {
+		const thisIter = new Iterator(this.ops)
+		const otherIter = new Iterator(otherDelta.ops)
+		const newDelta = new Delta()
+		
+		while (thisIter.hasNext() || otherIter.hasNext()) {
+			if (otherIter.peekType() === 'insert') { // new insert always gets used
+				newDelta.push(otherIter.next())
+			} else if (thisIter.peekType() === 'delete') { // old delete always gets used
+				newDelta.push(thisIter.next())
+			} else {
+				const length = Math.min(thisIter.peekLength(), otherIter.peekLength())
+				const thisOp = thisIter.next(length)
+				const otherOp = otherIter.next(length)
+				// console.log(thisOp, otherOp)
+				if (typeof otherOp.retain === 'number') {
+					if (typeof thisOp.retain === 'number') { // if both retain, also retain
+						newDelta.push({ retain: length })
+					} else {
+						newDelta.push({ insert: thisOp.insert }) // old insert overrides new retain
+					}
+				// new op should be delete, old op is either insert or retain
+				// new delete and old insert cancel out, new delete overrides old remain
+				} else if (typeof otherOp.delete === 'number' && typeof thisOp.retain === 'number') {
+					newDelta.push(otherOp)
+				}
+			}
+		}
+
+		return newDelta.chop()
 	}
 }

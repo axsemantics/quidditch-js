@@ -67,7 +67,7 @@ describe('Quidditch Client', () => {
 		const channel = 'test:1234'
 		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
 		client.once('ot:ack', (returnChannel) => {
-			expect(returnChannel).to.equal.channel
+			expect(returnChannel).to.equal(channel)
 			done()
 		})
 	})
@@ -77,15 +77,38 @@ describe('Quidditch Client', () => {
 		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
 		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
 		client.once('ot:ack', (returnChannel) => {
-			expect(returnChannel).to.equal.channel
+			expect(returnChannel).to.equal(channel)
 			client.once('ot:ack', (returnChannel) => {
-				expect(returnChannel).to.equal.channel
+				expect(returnChannel).to.equal(channel)
 				done()
 			})
 		})
 	})
 
-	it('should receive a delta and apply')
+	it('should receive a delta and apply', (done) => {
+		const channel = 'test:1234'
+		const delta = new Delta([{insert: 'Hello World'}])
+		server.broadcastDelta(channel, delta)
+		client.once('ot:delta', (returnChannel, returnDelta) => {
+			expect(returnChannel).to.equal(channel)
+			expect(returnDelta).to.deep.equal(delta)
+			done()
+		})
+	})
 
-	it('should receive a delta and transform')
+	it('should receive a delta and transform', (done) => {
+		const channel = 'test:1234'
+		const deltaInFlight = new Delta([{insert: 'Hello World'}])
+		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
+		server.broadcastDelta(channel, sendingDelta)
+		client.sendDelta(channel, deltaInFlight)
+		client.once('ot:delta', (returnChannel, returnDelta) => {
+			expect(returnChannel).to.equal(channel)
+			expect(returnDelta).to.deep.equal(deltaInFlight.transform(sendingDelta))
+			client.once('ot:ack', (returnChannel) => {
+				expect(returnChannel).to.equal(channel)
+				done()
+			})
+		})
+	})
 })

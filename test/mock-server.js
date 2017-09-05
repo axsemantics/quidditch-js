@@ -22,6 +22,15 @@ const mock = {
 			client.send(JSON.stringify(payload))
 		}
 	},
+	broadcastDelta (channel, delta) {
+		const payload = ['ot:delta', channel, {
+			delta,
+			rev: 7
+		}]
+		for (let client of mock.server.clients) {
+			client.send(JSON.stringify(payload))
+		}
+	},
 	handleMessage (socket, rawMessage) {
 		if (mock.drop) return // fall silent
 		const message = JSON.parse(rawMessage)

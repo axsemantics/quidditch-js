@@ -210,6 +210,26 @@ class QuidditchClient extends EventEmitter {
 	}
 
 	_handleOtDelta (message) {
+		const channelName = message[1]
+		const data = message[2]
+		let delta = data.delta
+		let channel = this._otChannels[channelName]
+		if (!channel) {
+			// somebody else started a channel
+			channel = this._otChannels[channelName] = {
+				deltaInFlight: null,
+				buffer: null,
+				rev: 0
+			}
+		}
+		channel.rev = data.rev
+		if (channel.deltaInFlight) {
+			delta = channel.deltaInFlight.transform(delta)
+		}
+		if (channel.buffer) {
+			delta = channel.buffer.transform(delta)
+		}
+		return this.emit('ot:delta', channelName, delta)
 	}
 
 	_handleGeneric (message) {

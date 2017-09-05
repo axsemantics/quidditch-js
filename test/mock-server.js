@@ -5,6 +5,7 @@ const expect = chai.expect
 const mock = {
 	server: null,
 	drop: false,
+	otChannels: {},
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
 		mock.server.on('connection', (socket) => {
@@ -28,7 +29,8 @@ const mock = {
 			auth: mock.handleAuth,
 			ping: mock.handlePing,
 			join: mock.handleJoin,
-			'generic:increment': mock.handleIncrement
+			'generic:increment': mock.handleIncrement,
+			'ot:delta': mock.handleOtDelta
 		}
 		handlers[message[0]](socket, message)
 	},
@@ -65,6 +67,14 @@ const mock = {
 	},
 	handleTimeout (socket, message) {
 		// just let it rot
+	},
+	handleOtDelta (socket, message) {
+		const channel = message[1]
+		// const data = message[2]
+		let rev = (mock.otChannels[channel] || 0) + 1
+		mock.otChannels[channel] = rev
+		const response = ['ot:ack', channel, {rev}]
+		socket.send(JSON.stringify(response))
 	}
 }
 

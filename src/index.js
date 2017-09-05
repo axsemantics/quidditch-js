@@ -22,6 +22,7 @@ class QuidditchClient extends EventEmitter {
 		this._config = Object.assign(defaultConfig, config)
 		this._url = url
 		this._joinedProject = null
+		this._otChannels = {} // keyed by channel name: {deltaInFlight, buffer, rev}
 		this._createSocket()
 	}
 
@@ -60,6 +61,28 @@ class QuidditchClient extends EventEmitter {
 		// 	}
 		// }, options.timeout)
 		// return promise
+	}
+
+	sendDelta (channelName, delta) {
+		let channel = this._otChannels[channelName]
+		if (!channel) {
+			channel = this._otChannels[channelName] = {
+				deltaInFlight: null,
+				buffer: null,
+				rev: 0
+			}
+		}
+
+		if (!channel.deltaInFlight) {
+			channel.deltaInFlight = delta
+			const payload = ['ot:delta', channelName, {
+				delta,
+				rev: channel.rev
+			}]
+			this._socket.send(JSON.stringify(payload))
+		} else {
+			channel.buffer = channel.buffer ? channel.buffer.compose(delta) : delta
+		}
 	}
 
 	// ===========================================================================
@@ -138,7 +161,9 @@ class QuidditchClient extends EventEmitter {
 		const actionHandlers = {
 			pong: this._handlePong.bind(this),
 			authenticated: this._handleAuthenticated.bind(this),
-			joined: this._handleJoined.bind(this)
+			joined: this._handleJoined.bind(this),
+			'ot:ack': this._handleOtAck.bind(this),
+			'ot:delta': this._handleOtDelta.bind(this)
 		}
 
 		if (actionHandlers[message[0]] === undefined) {
@@ -160,6 +185,31 @@ class QuidditchClient extends EventEmitter {
 
 	_handleJoined (message) {
 		this.emit('joined', message[1])
+	}
+
+	_handleOtAck (message) {
+		const channelName = message[1]
+		const channel = this._otChannels[channelName]
+		if (!channel || !channel.deltaInFlight)
+			return this.emit('error', new Error('Got ack for unknown ot channel!'))
+
+		channel.deltaInFlight = null
+		channel.rev = message[2].rev
+
+		if (channel.buffer) {
+			const payload = ['ot:delta', channelName, {
+				delta: channel.buffer,
+				rev: channel.rev
+			}]
+			channel.deltaInFlight = channel.buffer
+			channel.buffer = null
+			this._socket.send(JSON.stringify(payload))
+		}
+
+		this.emit('ot:ack', channelName)
+	}
+
+	_handleOtDelta (message) {
 	}
 
 	_handleGeneric (message) {

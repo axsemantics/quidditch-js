@@ -97,7 +97,7 @@ describe('Quidditch Client', () => {
 	})
 
 	it('should receive a delta and transform', (done) => {
-		const channel = 'test:1234'
+		const channel = 'test:12345'
 		const deltaInFlight = new Delta([{insert: 'Hello World'}])
 		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
 		server.broadcastDelta(channel, sendingDelta)

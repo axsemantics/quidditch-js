@@ -3,15 +3,6 @@ import EventEmitter from 'events'
 import Delta from './ot/delta.js'
 import OpIterator from './ot/op-iterator.js'
 
-const defer = function () {
-	const deferred = {}
-	deferred.promise = new Promise(function (resolve, reject) {
-		deferred.resolve = resolve
-		deferred.reject = reject
-	})
-	return deferred
-}
-
 class QuidditchClient extends EventEmitter {
 	constructor (url, config) {
 		super()
@@ -32,7 +23,6 @@ class QuidditchClient extends EventEmitter {
 	}
 
 	join (projectId) {
-		// const {id, promise} = this._createRequest(group)
 		const payload = [
 			'join',
 			{project: projectId}
@@ -47,20 +37,11 @@ class QuidditchClient extends EventEmitter {
 		}
 		Object.assign(options, opts)
 
-		// const {id, promise} = this._createRequest()
 		const payload = [
 			name,
-			// id,
 			data
 		]
 		this._socket.send(JSON.stringify(payload))
-		// setTimeout(() => {
-		// 	if (this._openRequests[id]) {
-		// 		const timeoutedRequest = this._popPendingRequest(id)
-		// 		timeoutedRequest.deferred.reject(new Error('call timed out'))
-		// 	}
-		// }, options.timeout)
-		// return promise
 	}
 
 	sendDelta (channelName, delta) {
@@ -150,13 +131,6 @@ class QuidditchClient extends EventEmitter {
 
 	_processMessage (rawMessage) {
 		const message = JSON.parse(rawMessage.data)
-		// if (message.error) {
-		// 	// this.emit('error', message.error)
-		// 	const req = this._popPendingRequest(message.id)
-		// 	if (req === null) return
-		// 	req.deferred.reject(message.error)
-		// 	return
-		// }
 
 		const actionHandlers = {
 			pong: this._handlePong.bind(this),
@@ -167,7 +141,6 @@ class QuidditchClient extends EventEmitter {
 		}
 
 		if (actionHandlers[message[0]] === undefined) {
-			// this._handleGeneric(message)
 			this.emit('message', message)
 		} else {
 			actionHandlers[message[0]](message)
@@ -230,30 +203,6 @@ class QuidditchClient extends EventEmitter {
 			delta = channel.buffer.transform(delta)
 		}
 		return this.emit('ot:delta', channelName, delta)
-	}
-
-	_handleGeneric (message) {
-		const req = this._popPendingRequest(message[1])
-		if (req === null) return // error already emitted in pop
-		req.deferred.resolve(message[2])
-	}
-
-	// request - response promise matching
-	_createRequest (args) {
-		const id = this._nextRequestIndex++
-		const deferred = defer()
-		this._openRequests[id] = {deferred, args}
-		return {id, promise: deferred.promise}
-	}
-
-	_popPendingRequest (id) {
-		const req = this._openRequests[id]
-		if (!req) {
-			this.emit('error', `no saved request with id: ${id}`)
-		} else {
-			this._openRequests[id] = undefined
-			return req
-		}
 	}
 }
 

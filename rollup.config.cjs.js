@@ -8,5 +8,5 @@ export default {
 		WebSocket: 'ws'
 	})],
 	dest: 'dist/quidditch.js',
-	external: ['ws', 'events']
+	external: ['ws', 'events', 'fast-diff', 'deep-equal']
 }

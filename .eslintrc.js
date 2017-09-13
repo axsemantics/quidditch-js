@@ -19,7 +19,7 @@ module.exports = {
 		'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
 
 		// OWN RULES
-		'indent': [2, 'tab'],
+		'indent': [2, 'tab', { "SwitchCase": 1 }],
 		'no-tabs': 0,
 		'comma-dangle': 0, //perhaps always?
 		'curly': 0,

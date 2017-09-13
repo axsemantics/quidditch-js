@@ -1,6 +1,10 @@
 // lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
+import diff from 'fast-diff'
+import equal from 'deep-equal'
 import { getOpLength } from './utils'
 import Iterator from './op-iterator'
+
+const NULL_CHARACTER = String.fromCharCode(0) // Placeholder char for embed in diff()
 
 export default class Delta {
 	constructor (ops = []) {
@@ -77,6 +81,10 @@ export default class Delta {
 		return this
 	}
 
+	map (predicate) {
+		return this.ops.map(predicate)
+	}
+
 	// Compose merges two consecutive operations into one operation, that
 	// preserves the changes of both. Or, in other words, for each input string S
 	// and a pair of consecutive operations A and B,
@@ -109,6 +117,54 @@ export default class Delta {
 			}
 		}
 
+		return newDelta.chop()
+	}
+
+	diff (otherDelta, index) {
+		if (this.ops === otherDelta.ops) {
+			return new Delta()
+		}
+		const strings = [this, otherDelta].map(function (delta) {
+			return delta.map(function (op) {
+				if (op.insert != null) {
+					return typeof op.insert === 'string' ? op.insert : NULL_CHARACTER
+				}
+				const prep = (delta === otherDelta) ? 'on' : 'with'
+				throw new Error('diff() called ' + prep + ' non-document')
+			}).join('')
+		})
+		const newDelta = new Delta()
+		const diffResult = diff(strings[0], strings[1], index)
+		const thisIter = new Iterator(this.ops)
+		const otherIter = new Iterator(otherDelta.ops)
+		diffResult.forEach(function (component) {
+			let length = component[1].length
+			while (length > 0) {
+				let opLength = 0
+				switch (component[0]) {
+					case diff.INSERT:
+						opLength = Math.min(otherIter.peekLength(), length)
+						newDelta.push(otherIter.next(opLength))
+						break
+					case diff.DELETE:
+						opLength = Math.min(length, thisIter.peekLength())
+						thisIter.next(opLength)
+						newDelta['delete'](opLength)
+						break
+					case diff.EQUAL:
+						opLength = Math.min(thisIter.peekLength(), otherIter.peekLength(), length)
+						const thisOp = thisIter.next(opLength)
+						const otherOp = otherIter.next(opLength)
+						if (equal(thisOp.insert, otherOp.insert)) {
+							newDelta.retain(opLength)
+						} else {
+							newDelta.push(otherOp)['delete'](opLength)
+						}
+						break
+				}
+				length -= opLength
+			}
+		})
 		return newDelta.chop()
 	}
 

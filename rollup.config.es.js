@@ -5,5 +5,5 @@ export default {
 	format: 'es',
 	plugins: [babel()],
 	dest: 'dist/quidditch.es.js',
-	external: ['events']
+	external: ['events', 'fast-diff', 'deep-equal']
 }

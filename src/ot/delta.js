@@ -200,4 +200,11 @@ export default class Delta {
 
 		return newDelta.chop()
 	}
+
+	// plaintext diffing
+	static diff (a, b) {
+		const aDelta = new Delta().insert(a)
+		const bDelta = new Delta().insert(b)
+		return aDelta.diff(bDelta)
+	}
 }

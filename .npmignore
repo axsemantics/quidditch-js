@@ -1,4 +1,6 @@
+coverage
 config.testing.js
 examples
+test
 rollup.*
 .eslintrc.js

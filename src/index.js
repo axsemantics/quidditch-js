@@ -57,7 +57,7 @@ class QuidditchClient extends EventEmitter {
 		if (!channel.deltaInFlight) {
 			channel.deltaInFlight = delta
 			const payload = ['ot:delta', channelName, {
-				delta,
+				delta: delta.ops,
 				rev: channel.rev
 			}]
 			this._socket.send(JSON.stringify(payload))
@@ -157,6 +157,15 @@ class QuidditchClient extends EventEmitter {
 	}
 
 	_handleJoined (message) {
+		if (message[1].channels) { // initialize channel revision
+			for (const channelName of Object.keys(message[1].channels)) {
+				this._otChannels[channelName] = {
+					deltaInFlight: null,
+					buffer: null,
+					rev: message[1].channels[channelName].last_revision
+				}
+			}
+		}
 		this.emit('joined', message[1])
 	}
 
@@ -185,7 +194,7 @@ class QuidditchClient extends EventEmitter {
 	_handleOtDelta (message) {
 		const channelName = message[1]
 		const data = message[2]
-		let delta = data.delta
+		let delta = new Delta(data.delta)
 		let channel = this._otChannels[channelName]
 		if (!channel) {
 			// somebody else started a channel

@@ -11,44 +11,72 @@ export default class Delta {
 		this.ops = ops
 	}
 
-	insert (text) {
+	insert (text, attributes) {
 		// TODO canonical op ordering
+		if (text.length === 0) return this
 		const op = { insert: text }
+		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
+			op.attributes = attributes
+		}
 		return this.push(op)
 	}
 
 	delete (length) {
+		if (length <= 0) return this
 		const op = { delete: length }
 		return this.push(op)
 	}
 
-	retain (length) {
+	retain (length, attributes) {
+		if (length <= 0) return this
 		const op = { retain: length }
+		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
+			op.attributes = attributes
+		}
 		return this.push(op)
 	}
 
 	push (newOp) {
-		const index = this.ops.length
-		const lastOp = this.ops[index - 1]
+		let index = this.ops.length
+		let lastOp = this.ops[index - 1]
 
 		// patch lastOp if we can
-		if (lastOp) {
-			if (newOp.retain && lastOp.retain) {
-				this.ops[index - 1] = { retain: lastOp.retain + newOp.retain }
-				return this
-			}
-
-			if (newOp.insert && lastOp.insert) {
-				this.ops[index - 1] = { insert: lastOp.insert + newOp.insert }
-				return this
-			}
-
+		if (typeof lastOp === 'object') {
 			if (newOp.delete && lastOp.delete) {
 				this.ops[index - 1] = { delete: lastOp.delete + newOp.delete }
 				return this
 			}
+
+			// Since it does not matter if we insert before or after deleting at the same index,
+			// always prefer to insert first
+			if (typeof lastOp['delete'] === 'number' && newOp.insert != null) {
+				index -= 1
+				lastOp = this.ops[index - 1]
+				if (!lastOp) {
+					this.ops.unshift(newOp)
+					return this
+				}
+			}
+
+			if (equal(newOp.attributes, lastOp.attributes)) {
+				if (newOp.insert && lastOp.insert) {
+					this.ops[index - 1] = { insert: lastOp.insert + newOp.insert }
+					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
+					return this
+				}
+
+				if (newOp.retain && lastOp.retain) {
+					this.ops[index - 1] = { retain: lastOp.retain + newOp.retain }
+					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
+					return this
+				}
+			}
 		}
-		this.ops.push(newOp)
+		if (index === this.ops.length) {
+			this.ops.push(newOp)
+		} else {
+			this.ops.splice(index, 0, newOp)
+		}
 		return this
 	}
 
@@ -75,7 +103,7 @@ export default class Delta {
 
 	chop () {
 		const lastOp = this.ops[this.ops.length - 1]
-		if (lastOp && lastOp.retain) {
+		if (lastOp && lastOp.retain && !lastOp.attributes) {
 			this.ops.pop()
 		}
 		return this

@@ -24,7 +24,7 @@ const mock = {
 	},
 	broadcastDelta (channel, delta) {
 		const payload = ['ot:delta', channel, {
-			delta,
+			delta: delta.ops,
 			rev: 7
 		}]
 		for (let client of mock.server.clients) {

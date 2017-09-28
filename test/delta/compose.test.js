@@ -1,4 +1,4 @@
-/* global describe, before, it */
+/* global describe, it */
 
 const chai = require('chai')
 const expect = chai.expect
@@ -7,37 +7,37 @@ const { Delta } = require('../../dist/quidditch.js')
 
 describe('Delta.compose()', () => {
 	it('should compose insert + insert', function () {
-		const a = new Delta([{ insert: 'A' }])
-		const b = new Delta([{ insert: 'B' }])
-		const expected = new Delta([{ insert: 'BA' }])
+		const a = new Delta().insert('A')
+		const b = new Delta().insert('B')
+		const expected = new Delta().insert('BA')
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose insert + retain', function () {
-		const a = new Delta([{ insert: 'A' }])
-		const b = new Delta([{ retain: 1 }])
-		const expected = new Delta([{ insert: 'A' }])
+		const a = new Delta().insert('A')
+		const b = new Delta().retain(1, { bold: true, color: 'red', font: null })
+		const expected = new Delta().insert('A', { bold: true, color: 'red' })
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose insert + delete', function () {
-		const a = new Delta([{ insert: 'A' }])
-		const b = new Delta([{ delete: 1 }])
+		const a = new Delta().insert('A')
+		const b = new Delta().delete(1)
 		const expected = new Delta()
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose delete + insert', function () {
-		const a = new Delta([{ delete: 1 }])
-		const b = new Delta([{ insert: 'B' }])
-		const expected = new Delta([{ insert: 'B' }, { delete: 1 }])
+		const a = new Delta().delete(1)
+		const b = new Delta().insert('B')
+		const expected = new Delta().insert('B').delete(1)
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose delete + retain', function () {
-		const a = new Delta([{ delete: 1 }])
-		const b = new Delta([{ retain: 1 }])
-		const expected = new Delta([{ delete: 1 }])
+		const a = new Delta().delete(1)
+		const b = new Delta().retain(1, { bold: true, color: 'red' })
+		const expected = new Delta().delete(1).retain(1, { bold: true, color: 'red' })
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 

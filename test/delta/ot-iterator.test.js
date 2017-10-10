@@ -10,7 +10,7 @@ const { Delta, OpIterator } = require('../../dist/quidditch.js')
 
 describe('op iterator', function () {
 	beforeEach(function () {
-		this.delta = new Delta().insert('Hello').retain(3).delete(4)
+		this.delta = new Delta().insert('Hello', { bold: true }).retain(3).delete(4)
 	})
 
 	it('hasNext() true', function () {
@@ -66,8 +66,8 @@ describe('op iterator', function () {
 
 	it('next(length)', function () {
 		const iter = new OpIterator(this.delta.ops)
-		expect(iter.next(2)).to.deep.equal({ insert: 'He' })
-		expect(iter.next(10)).to.deep.equal({ insert: 'llo' })
+		expect(iter.next(2)).to.deep.equal({ insert: 'He', attributes: { bold: true } })
+		expect(iter.next(10)).to.deep.equal({ insert: 'llo', attributes: { bold: true } })
 		expect(iter.next(1)).to.deep.equal({ retain: 1 })
 		expect(iter.next(2)).to.deep.equal({ retain: 2 })
 	})

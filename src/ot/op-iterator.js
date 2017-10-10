@@ -30,12 +30,18 @@ export default class OpIterator {
 		}
 		if (typeof nextOp.delete === 'number') {
 			return { delete: length }
-		}
-		if (typeof nextOp.retain === 'number') {
-			return { retain: length }
-		}
-		if (typeof nextOp.insert === 'string') {
-			return { insert: nextOp.insert.substr(offset, length) }
+		} else {
+			const retOp = {}
+			if (nextOp.attributes) {
+				retOp.attributes = nextOp.attributes
+			}
+			if (typeof nextOp.retain === 'number') {
+				retOp.retain = length
+			}
+			if (typeof nextOp.insert === 'string') {
+				retOp.insert = nextOp.insert.substr(offset, length)
+			}
+			return retOp
 		}
 	}
 

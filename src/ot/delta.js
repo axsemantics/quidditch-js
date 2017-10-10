@@ -1,7 +1,7 @@
 // lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
 import diff from 'fast-diff'
 import equal from 'deep-equal'
-import { getOpLength } from './utils'
+import { getOpLength, attributeOperations } from './utils'
 import Iterator from './op-iterator'
 
 const NULL_CHARACTER = String.fromCharCode(0) // Placeholder char for embed in diff()
@@ -132,11 +132,19 @@ export default class Delta {
 				const thisOp = thisIter.next(length)
 				const otherOp = otherIter.next(length)
 				if (typeof otherOp.retain === 'number') {
+					const newOp = {}
 					if (typeof thisOp.retain === 'number') { // if both retain, also retain
-						newDelta.push({ retain: length })
+						newOp.retain = length
 					} else {
-						newDelta.push({ insert: thisOp.insert }) // old insert overrides new retain
+						newOp.insert = thisOp.insert // old insert overrides new retain
 					}
+					// Preserve null when composing with a retain, otherwise remove it for inserts
+					const attributes = attributeOperations.compose(thisOp.attributes, otherOp.attributes, typeof thisOp.retain === 'number')
+					console.log(thisOp.attributes, otherOp.attributes, attributes)
+					if (attributes) {
+						newOp.attributes = attributes
+					}
+					newDelta.push(newOp)
 				// new op should be delete, old op is either insert or retain
 				// new delete and old insert cancel out, new delete overrides old remain
 				} else if (typeof otherOp.delete === 'number' && typeof thisOp.retain === 'number') {

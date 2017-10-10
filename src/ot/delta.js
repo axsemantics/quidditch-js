@@ -192,7 +192,7 @@ export default class Delta {
 						const thisOp = thisIter.next(opLength)
 						const otherOp = otherIter.next(opLength)
 						if (equal(thisOp.insert, otherOp.insert)) {
-							newDelta.retain(opLength)
+							newDelta.retain(opLength, attributeOperations.diff(thisOp.attributes, otherOp.attributes))
 						} else {
 							newDelta.push(otherOp)['delete'](opLength)
 						}
@@ -229,7 +229,7 @@ export default class Delta {
 					newDelta.push(otherOp)
 				} else {
 					// We retain either their retain or insert
-					newDelta.retain(length)
+					newDelta.retain(length, attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority))
 				}
 			}
 		}

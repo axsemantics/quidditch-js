@@ -140,7 +140,6 @@ export default class Delta {
 					}
 					// Preserve null when composing with a retain, otherwise remove it for inserts
 					const attributes = attributeOperations.compose(thisOp.attributes, otherOp.attributes, typeof thisOp.retain === 'number')
-					console.log(thisOp.attributes, otherOp.attributes, attributes)
 					if (attributes) {
 						newOp.attributes = attributes
 					}

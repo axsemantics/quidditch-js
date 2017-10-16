@@ -105,12 +105,6 @@ describe('insert()', function () {
 		expect(delta).to.deep.equal(expected)
 	})
 
-	it('insert(text) after delete no merge', function () {
-		const delta = new Delta().insert(1).delete(1).insert('a')
-		const expected = new Delta().insert(1).insert('a').delete(1)
-		expect(delta).to.deep.equal(expected)
-	})
-
 	it('insert(text, {})', function () {
 		const delta = new Delta().insert('a', {})
 		const expected = new Delta().insert('a')

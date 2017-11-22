@@ -180,7 +180,7 @@ class QuidditchClient extends EventEmitter {
 
 		if (channel.buffer) {
 			const payload = ['ot:delta', channelName, {
-				delta: channel.buffer,
+				delta: channel.buffer.ops,
 				rev: channel.rev
 			}]
 			channel.deltaInFlight = channel.buffer

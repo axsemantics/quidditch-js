@@ -59,13 +59,13 @@ export default class Delta {
 			}
 
 			if (equal(newOp.attributes, lastOp.attributes)) {
-				if (newOp.insert && lastOp.insert) {
+				if (typeof newOp.insert === 'string' && typeof lastOp.insert === 'string') {
 					this.ops[index - 1] = { insert: lastOp.insert + newOp.insert }
 					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
 					return this
 				}
 
-				if (newOp.retain && lastOp.retain) {
+				if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number') {
 					this.ops[index - 1] = { retain: lastOp.retain + newOp.retain }
 					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
 					return this

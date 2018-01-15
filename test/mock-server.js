@@ -68,10 +68,15 @@ const mock = {
 		socket.send(JSON.stringify(response))
 	},
 	handleIncrement (socket, message) {
-		expect(message[1]).to.contain.all.keys('number')
-		const response = ['generic:incremented', {
-			number: ++message[1].number
-		}]
+		expect(message[2]).to.contain.all.keys('number')
+		let response
+		if (message[2].number === null) {
+			response = ['error', message[1], 'NOT A NUMBER!']
+		} else {
+			response = ['success', message[1], {
+				number: ++message[2].number
+			}]
+		}
 		socket.send(JSON.stringify(response))
 	},
 	handleTimeout (socket, message) {

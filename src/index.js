@@ -3,6 +3,15 @@ import EventEmitter from 'events'
 import Delta from './ot/delta.js'
 import OpIterator from './ot/op-iterator.js'
 
+const defer = function () {
+	const deferred = {}
+	deferred.promise = new Promise(function (resolve, reject) {
+		deferred.resolve = resolve
+		deferred.reject = reject
+	})
+	return deferred
+}
+
 class QuidditchClient extends EventEmitter {
 	constructor (url, config) {
 		super()
@@ -37,11 +46,20 @@ class QuidditchClient extends EventEmitter {
 		}
 		Object.assign(options, opts)
 
+		const {id, promise} = this._createRequest()
 		const payload = [
 			name,
+			id,
 			data
 		]
 		this._socket.send(JSON.stringify(payload))
+		setTimeout(() => {
+			if (this._openRequests[id]) {
+				const timeoutedRequest = this._popPendingRequest(id)
+				timeoutedRequest.deferred.reject(new Error('call timed out'))
+			}
+		}, options.timeout)
+		return promise
 	}
 
 	sendDelta (channelName, delta) {
@@ -133,18 +151,52 @@ class QuidditchClient extends EventEmitter {
 		const message = JSON.parse(rawMessage.data)
 
 		const actionHandlers = {
+			error: this._handleError.bind(this),
+			success: this._handleCallSuccess.bind(this),
 			pong: this._handlePong.bind(this),
 			authenticated: this._handleAuthenticated.bind(this),
 			joined: this._handleJoined.bind(this),
 			'ot:ack': this._handleOtAck.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
 		}
-
+		console.log(message)
 		if (actionHandlers[message[0]] === undefined) {
 			this.emit('message', message)
 		} else {
 			actionHandlers[message[0]](message)
 		}
+	}
+
+	// request - response promise matching
+	_createRequest (args) {
+		const id = this._nextRequestIndex++
+		const deferred = defer()
+		this._openRequests[id] = {deferred, args}
+		return {id, promise: deferred.promise}
+	}
+
+	_popPendingRequest (id) {
+		const req = this._openRequests[id]
+		if (!req) {
+			this.emit('error', `no saved request with id: ${id}`)
+		} else {
+			this._openRequests[id] = undefined
+			return req
+		}
+	}
+
+	_handleError (message) {
+		const req = this._popPendingRequest(message[1])
+		if (req === null) {
+			this.emit('error', message[message.length - 1])
+		}
+		req.deferred.reject(message[2])
+	}
+
+	_handleCallSuccess (message) {
+		const req = this._popPendingRequest(message[1])
+		if (req === null) return // error already emitted in pop
+		req.deferred.resolve(message[2])
 	}
 
 	_handlePong (message) {

@@ -53,12 +53,28 @@ describe('Quidditch Client', () => {
 		})
 	})
 
-	it('should handle a generic call', (done) => {
-		client.call('generic:increment', {number: 3})
+	it('should receive generic broadcast', (done) => {
 		client.once('message', (message) => {
-			expect(message[0]).to.equal('generic:incremented')
-			expect(message[1]).to.contain.all.keys('number')
-			expect(message[1].number).to.equal(4)
+			expect(message[0]).to.equal('broadcast')
+			expect(message[1]).to.equal('broadcast payload')
+			done()
+		})
+		server.sendToAll(['broadcast', 'broadcast payload'])
+	})
+
+	it('should handle a generic call', (done) => {
+		client.call('generic:increment', {number: 3}).then((response) => {
+			expect(response).to.contain.all.keys('number')
+			expect(response.number).to.equal(4)
+			done()
+		})
+	})
+
+	it('should handle a generic call with error', (done) => {
+		client.call('generic:increment', {number: null}).then(() => {
+			done('should not succeed')
+		}).catch((error) => {
+			expect(error).to.equal('NOT A NUMBER!')
 			done()
 		})
 	})

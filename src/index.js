@@ -110,7 +110,7 @@ class QuidditchClient extends EventEmitter {
 				setTimeout(() => {
 					this.emit('reconnecting')
 					this._createSocket()
-				}, 3000) // throttle reconnect
+				}, this._config.reconnectDelay) // throttle reconnect
 			}
 		})
 		this._socket.addEventListener('message', this._processMessage.bind(this))
@@ -159,7 +159,6 @@ class QuidditchClient extends EventEmitter {
 			'ot:ack': this._handleOtAck.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
 		}
-		console.log(message)
 		if (actionHandlers[message[0]] === undefined) {
 			this.emit('message', message)
 		} else {
@@ -177,26 +176,26 @@ class QuidditchClient extends EventEmitter {
 
 	_popPendingRequest (id) {
 		const req = this._openRequests[id]
-		if (!req) {
-			this.emit('error', `no saved request with id: ${id}`)
-		} else {
-			this._openRequests[id] = undefined
-			return req
-		}
+		this._openRequests[id] = undefined
+		return req
 	}
 
 	_handleError (message) {
 		const req = this._popPendingRequest(message[1])
-		if (req === null) {
+		if (req === null || req === undefined) {
 			this.emit('error', message[message.length - 1])
+		} else {
+			req.deferred.reject(message[2])
 		}
-		req.deferred.reject(message[2])
 	}
 
 	_handleCallSuccess (message) {
 		const req = this._popPendingRequest(message[1])
-		if (req === null) return // error already emitted in pop
-		req.deferred.resolve(message[2])
+		if (req === null || req === undefined) {
+			this.emit('error', `no saved request with id: ${message.id}`)
+		} else {
+			req.deferred.resolve(message[2])
+		}
 	}
 
 	_handlePong (message) {

@@ -3,6 +3,7 @@ const chai = require('chai')
 const expect = chai.expect
 
 const mock = {
+	silence: false,
 	server: null,
 	drop: false,
 	otChannels: {},
@@ -27,9 +28,21 @@ const mock = {
 			delta: delta.ops,
 			rev: 7
 		}]
-		for (let client of mock.server.clients) {
-			client.send(JSON.stringify(payload))
-		}
+		mock.sendToAll(payload)
+	},
+	broadcastRandomAck () {
+		const payload = ['ot:ack', 'test:nope', {
+			rev: 7
+		}]
+		mock.sendToAll(payload)
+	},
+	sendTrashSuccess () {
+		const payload = ['success', '9999999', {}]
+		mock.sendToAll(payload)
+	},
+	sendTrashError () {
+		const payload = ['error', '9999999', 'ALARM']
+		mock.sendToAll(payload)
 	},
 	handleMessage (socket, rawMessage) {
 		if (mock.drop) return // fall silent
@@ -41,7 +54,9 @@ const mock = {
 			'generic:increment': mock.handleIncrement,
 			'ot:delta': mock.handleOtDelta
 		}
-		handlers[message[0]](socket, message)
+		if (handlers[message[0]]) {
+			handlers[message[0]](socket, message)
+		}
 	},
 	handleAuth (socket, message) {
 		expect(message[1]).to.contain.all.keys('token')
@@ -52,6 +67,7 @@ const mock = {
 		socket.send(JSON.stringify(response))
 	},
 	handlePing (socket, message) {
+		if (mock.silence) return
 		const response = ['pong', message[1]]
 		if (socket.readyState !== 1) // socket still open?
 			return
@@ -61,7 +77,12 @@ const mock = {
 		expect(message[1]).to.contain.all.keys('project')
 		const response = ['joined', {
 			project: message[1].project,
-			additionalData: {}
+			additionalData: {},
+			channels: {
+				'initalChannel': {
+					last_revision: 7
+				}
+			}
 		}]
 		if (socket.readyState !== 1) // socket still open?
 			return

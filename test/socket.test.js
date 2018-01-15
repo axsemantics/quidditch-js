@@ -21,7 +21,7 @@ describe('Quidditch Client', () => {
 	})
 
 	it('should connect', (done) => {
-		client = new QuidditchClient(WS_URL, {pingInterval: 300, token: 'hunter2'})
+		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter2'})
 		client.once('open', done)
 		client.on('error', (error) => {
 			throw new Error(error) // let us hear the screams
@@ -47,8 +47,9 @@ describe('Quidditch Client', () => {
 	it('should join', (done) => {
 		client.join(42)
 		client.once('joined', (data) => {
-			expect(data).to.contain.all.keys('project', 'additionalData')
+			expect(data).to.contain.all.keys('project', 'additionalData', 'channels')
 			expect(data.project).to.equal(42)
+			expect(client._otChannels['initalChannel'].rev).to.equal(7)
 			done()
 		})
 	})
@@ -75,6 +76,15 @@ describe('Quidditch Client', () => {
 			done('should not succeed')
 		}).catch((error) => {
 			expect(error).to.equal('NOT A NUMBER!')
+			done()
+		})
+	})
+
+	it('should detect timouted generic calls', (done) => {
+		client.call('generic:invalid', {number: null}, {timeout: 200}).then(() => {
+			done('should not succeed')
+		}).catch((error) => {
+			expect(error.message).to.equal('call timed out')
 			done()
 		})
 	})
@@ -112,6 +122,17 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should receive a delta on a new channel', (done) => {
+		const channel = 'test:extern'
+		const delta = new Delta([{insert: 'Hello World'}])
+		server.broadcastDelta(channel, delta)
+		client.once('ot:delta', (returnChannel, returnDelta) => {
+			expect(returnChannel).to.equal(channel)
+			expect(returnDelta).to.deep.equal(delta)
+			done()
+		})
+	})
+
 	it('should receive a delta and transform', (done) => {
 		const channel = 'test:12345'
 		const deltaInFlight = new Delta([{insert: 'Hello World'}])
@@ -126,5 +147,56 @@ describe('Quidditch Client', () => {
 				done()
 			})
 		})
+	})
+
+	it('should buffer multiple deltas', (done) => {
+		const channel = 'test:123456'
+		const deltaInFlight = new Delta([{insert: 'Hello World'}])
+		const moreDelta = new Delta([{retain: 11, insert: ', how'}])
+		const evenMoreDelta = new Delta([{retain: 16, insert: ' are you?'}])
+		const bufferDelta = deltaInFlight.compose(evenMoreDelta).compose(moreDelta)
+		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
+		server.broadcastDelta(channel, sendingDelta)
+		client.sendDelta(channel, deltaInFlight)
+		client.sendDelta(channel, moreDelta)
+		client.sendDelta(channel, evenMoreDelta)
+		client.once('ot:delta', (returnChannel, returnDelta) => {
+			expect(returnChannel).to.equal(channel)
+			expect(returnDelta).to.deep.equal(bufferDelta.transform(sendingDelta))
+			client.once('ot:ack', (returnChannel) => {
+				expect(returnChannel).to.equal(channel)
+				done()
+			})
+		})
+	})
+
+	it('should not accept random acks', (done) => {
+		client.removeAllListeners('error')
+		client.once('error', () => done())
+		server.broadcastRandomAck()
+	})
+
+	it('should error on unknown message id (success)', (done) => {
+		client.once('error', () => done())
+		server.sendTrashSuccess()
+	})
+
+	it('should error on unknown message id (error)', (done) => {
+		client.once('error', () => done())
+		server.sendTrashError()
+	})
+
+	it('should detect ping timeouts and reconnect', (done) => {
+		server.silence = true
+		client.once('open', () => {
+			server.silence = false
+			done()
+		})
+	})
+
+	it('should close properly', (done) => {
+		client.once('closed', () => done())
+		client.once('open', () => done('should not open again'))
+		client.close()
 	})
 })

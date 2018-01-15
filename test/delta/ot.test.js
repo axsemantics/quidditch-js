@@ -41,4 +41,8 @@ describe('Operational Transforms', () => {
 
 		expect(delta.apply('Albus P. W. B. Dumbledore')).to.equal('Albus Percival Wulfric Brian Dumbledore')
 	})
+
+	it('should expose static diff function', () => {
+		Delta.diff('a', 'b')
+	})
 })

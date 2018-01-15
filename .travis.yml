@@ -1,0 +1,25 @@
+git:
+  submodules: true
+sudo: false
+env:
+  - CXX=g++-4.8
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
+language: node_js
+node_js:
+  - "7"
+
+before_script:
+  - npm install
+
+script:
+  - npm run build -s
+  - npm run lint -s
+  - npm run test -s
+
+after_success:
+  - npm run coveralls -s

@@ -1,4 +1,4 @@
-# quidditch-js
+# quidditch-js [![Build Status](https://travis-ci.org/axsemantics/quidditch-js.svg?branch=master)](https://travis-ci.org/axsemantics/quidditch-js) [![Coverage Status](https://coveralls.io/repos/github/axsemantics/quidditch-js/badge.svg?branch=master)](https://coveralls.io/github/axsemantics/quidditch-js?branch=master) [![npm](https://img.shields.io/npm/v/quidditch.svg)](https://www.npmjs.com/package/quidditch)
 
 A javascript-client for the quidditch collaboration framework.
 

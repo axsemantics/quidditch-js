@@ -72,15 +72,52 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 
-		if (!channel.deltaInFlight) {
-			channel.deltaInFlight = delta
-			const payload = ['ot:delta', channelName, {
-				delta: delta.ops,
+		const handleAck = function ({rev}) {
+			channel.deltaInFlight = null
+			channel.rev = rev
+
+			if (channel.buffer) {
+				const buffer = channel.buffer
+				channel.buffer = null
+				sendDelta(buffer.delta).then(() => {
+					for (const promise of buffer.promises) {
+						promise.resolve()
+					}
+				}).catch((error) => {
+					for (const promise of buffer.promises) {
+						promise.reject(error)
+					}
+				})
+			}
+			return Promise.resolve()
+		}
+
+		const sendDelta = (deltaToSend) => {
+			const {id, promise} = this._createRequest()
+			channel.deltaInFlight = deltaToSend
+			const payload = ['ot:delta', id, channelName, {
+				delta: deltaToSend.ops,
 				rev: channel.rev
 			}]
 			this._socket.send(JSON.stringify(payload))
+
+			return promise.then(handleAck)
+		}
+
+		if (!channel.deltaInFlight) {
+			return sendDelta(delta)
 		} else {
-			channel.buffer = channel.buffer ? channel.buffer.compose(delta) : delta
+			const deferred = defer()
+			if (channel.buffer) {
+				channel.buffer.delta = channel.buffer.delta.compose(delta)
+				channel.buffer.promises.push(deferred)
+			} else {
+				channel.buffer = {
+					delta,
+					promises: [deferred]
+				}
+			}
+			return deferred.promise
 		}
 	}
 
@@ -156,7 +193,6 @@ class QuidditchClient extends EventEmitter {
 			pong: this._handlePong.bind(this),
 			authenticated: this._handleAuthenticated.bind(this),
 			joined: this._handleJoined.bind(this),
-			'ot:ack': this._handleOtAck.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
 		}
 		if (actionHandlers[message[0]] === undefined) {
@@ -220,28 +256,6 @@ class QuidditchClient extends EventEmitter {
 		this.emit('joined', message[1])
 	}
 
-	_handleOtAck (message) {
-		const channelName = message[1]
-		const channel = this._otChannels[channelName]
-		if (!channel || !channel.deltaInFlight)
-			return this.emit('error', new Error('Got ack for unknown ot channel!'))
-
-		channel.deltaInFlight = null
-		channel.rev = message[2].rev
-
-		if (channel.buffer) {
-			const payload = ['ot:delta', channelName, {
-				delta: channel.buffer.ops,
-				rev: channel.rev
-			}]
-			channel.deltaInFlight = channel.buffer
-			channel.buffer = null
-			this._socket.send(JSON.stringify(payload))
-		}
-
-		this.emit('ot:ack', channelName)
-	}
-
 	_handleOtDelta (message) {
 		const channelName = message[1]
 		const data = message[2]
@@ -260,7 +274,7 @@ class QuidditchClient extends EventEmitter {
 			delta = channel.deltaInFlight.transform(delta)
 		}
 		if (channel.buffer) {
-			delta = channel.buffer.transform(delta)
+			delta = channel.buffer.delta.transform(delta)
 		}
 		return this.emit('ot:delta', channelName, delta)
 	}

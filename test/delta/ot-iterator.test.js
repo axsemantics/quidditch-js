@@ -23,6 +23,11 @@ describe('op iterator', function () {
 		expect(iter.hasNext()).to.equal(false)
 	})
 
+	it('peek()', function () {
+		const iter = new OpIterator(this.delta.ops)
+		expect(iter.peek()).to.equal(this.delta.ops[0])
+	})
+
 	it('peekLength() offset === 0', function () {
 		const iter = new OpIterator(this.delta.ops)
 		expect(iter.peekLength()).to.equal(5)

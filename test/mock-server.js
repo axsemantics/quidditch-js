@@ -104,11 +104,16 @@ const mock = {
 		// just let it rot
 	},
 	handleOtDelta (socket, message) {
-		const channel = message[1]
-		// const data = message[2]
-		let rev = (mock.otChannels[channel] || 0) + 1
-		mock.otChannels[channel] = rev
-		const response = ['ot:ack', channel, {rev}]
+		const channel = message[2]
+		let response
+		if (message[3].delta[0].insert === 'trash') {
+			response = ['error', message[1], 'trashy request']
+		} else {
+			let rev = (mock.otChannels[channel] || 0) + 1
+			mock.otChannels[channel] = rev
+			response = ['success', message[1], {rev}]
+		}
+
 		socket.send(JSON.stringify(response))
 	}
 }

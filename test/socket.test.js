@@ -91,23 +91,26 @@ describe('Quidditch Client', () => {
 
 	it('should send a delta and handle the ack', (done) => {
 		const channel = 'test:1234'
-		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
-		client.once('ot:ack', (returnChannel) => {
-			expect(returnChannel).to.equal(channel)
+		client.sendDelta(channel, new Delta([{insert: 'Hello World'}])).then(() => done())
+	})
+
+	it('should handle broken delta with error', (done) => {
+		const channel = 'test:trash'
+		client.sendDelta(channel, new Delta([{insert: 'trash'}])).then(() => {
+			done('should not succeed')
+		}).catch((error) => {
+			expect(error).to.equal('trashy request')
 			done()
 		})
 	})
 
 	it('should send a delta and buffer', (done) => {
 		const channel = 'test:1234'
-		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
-		client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
-		client.once('ot:ack', (returnChannel) => {
-			expect(returnChannel).to.equal(channel)
-			client.once('ot:ack', (returnChannel) => {
-				expect(returnChannel).to.equal(channel)
-				done()
-			})
+		Promise.all([
+			client.sendDelta(channel, new Delta([{insert: 'Hello World'}])),
+			client.sendDelta(channel, new Delta([{insert: 'Hello World'}]))
+		]).then(() => {
+			done()
 		})
 	})
 
@@ -138,45 +141,64 @@ describe('Quidditch Client', () => {
 		const deltaInFlight = new Delta([{insert: 'Hello World'}])
 		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
 		server.broadcastDelta(channel, sendingDelta)
-		client.sendDelta(channel, deltaInFlight)
+		const sendFullfilled = client.sendDelta(channel, deltaInFlight)
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
 			expect(returnDelta).to.deep.equal(deltaInFlight.transform(sendingDelta))
-			client.once('ot:ack', (returnChannel) => {
-				expect(returnChannel).to.equal(channel)
-				done()
-			})
+			sendFullfilled.then(() => done())
 		})
 	})
 
 	it('should buffer multiple deltas', (done) => {
 		const channel = 'test:123456'
 		const deltaInFlight = new Delta([{insert: 'Hello World'}])
-		const moreDelta = new Delta([{retain: 11, insert: ', how'}])
-		const evenMoreDelta = new Delta([{retain: 16, insert: ' are you?'}])
+		const moreDelta = new Delta([{retain: 11}, {insert: ', how'}])
+		const evenMoreDelta = new Delta([{retain: 16}, {insert: ' are you?'}])
 		const bufferDelta = deltaInFlight.compose(evenMoreDelta).compose(moreDelta)
 		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
 		server.broadcastDelta(channel, sendingDelta)
-		client.sendDelta(channel, deltaInFlight)
-		client.sendDelta(channel, moreDelta)
-		client.sendDelta(channel, evenMoreDelta)
+		const sendFullfilled = Promise.all([
+			client.sendDelta(channel, deltaInFlight),
+			client.sendDelta(channel, moreDelta),
+			client.sendDelta(channel, evenMoreDelta)
+		])
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
 			expect(returnDelta).to.deep.equal(bufferDelta.transform(sendingDelta))
-			client.once('ot:ack', (returnChannel) => {
-				expect(returnChannel).to.equal(channel)
-				done()
-			})
+			sendFullfilled.then(() => done())
 		})
 	})
 
-	it('should not accept random acks', (done) => {
-		client.removeAllListeners('error')
-		client.once('error', () => done())
-		server.broadcastRandomAck()
+	it('should buffer multiple deltas and reject all on error', (done) => {
+		const channel = 'test:123456'
+		const deltaInFlight = new Delta([{insert: 'Hello World'}])
+		const moreDelta = new Delta([{retain: 11}, {insert: ', how'}])
+		const evenMoreDelta = new Delta([{insert: 'trash'}])
+		const bufferDelta = deltaInFlight.compose(evenMoreDelta).compose(moreDelta)
+		const sendingDelta = new Delta([{insert: 'I AM FIRST'}])
+		server.broadcastDelta(channel, sendingDelta)
+		const sendFullfilled = Promise.all([
+			client.sendDelta(channel, deltaInFlight),
+			client.sendDelta(channel, moreDelta),
+			client.sendDelta(channel, evenMoreDelta)
+		])
+		client.once('ot:delta', (returnChannel, returnDelta) => {
+			expect(returnChannel).to.equal(channel)
+			expect(returnDelta).to.deep.equal(bufferDelta.transform(sendingDelta))
+			sendFullfilled.then(() => {
+				done('should not succeed')
+			}).catch(() => done())
+		})
 	})
 
+	// it('should not accept random acks', (done) => {
+	// 	client.removeAllListeners('error')
+	// 	client.once('error', () => done())
+	// 	server.broadcastRandomAck()
+	// })
+
 	it('should error on unknown message id (success)', (done) => {
+		client.removeAllListeners('error')
 		client.once('error', () => done())
 		server.sendTrashSuccess()
 	})

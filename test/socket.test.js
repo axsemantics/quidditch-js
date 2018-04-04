@@ -10,7 +10,7 @@ const server = require('./mock-server')
 const { QuidditchClient, Delta } = require('../dist/quidditch.js')
 
 const PORT = 9436
-const WS_URL = 'ws://localhost:9436'
+const WS_URL = 'ws://localhost:9436/projects/my-project'
 // const WS_URL = 'wss://api-stage.ax-semantics.com/ws/rohrpost/'
 let client = null
 describe('Quidditch Client', () => {
@@ -28,8 +28,13 @@ describe('Quidditch Client', () => {
 		})
 	})
 
-	it('should authenticate automatically', (done) => {
-		client.once('authenticated', done)
+	it('should authenticate & join automatically', (done) => {
+		client.once('joined', (data) => {
+			expect(data).to.contain.all.keys('project', 'additionalData', 'channels')
+			expect(data.project).to.equal('my-project')
+			expect(client._otChannels['initalChannel'].rev).to.equal(7)
+			done()
+		})
 	})
 
 	it('should ping', (done) => {
@@ -43,16 +48,6 @@ describe('Quidditch Client', () => {
 		}
 		count()
 	}).timeout(1500)
-
-	it('should join', (done) => {
-		client.join(42)
-		client.once('joined', (data) => {
-			expect(data).to.contain.all.keys('project', 'additionalData', 'channels')
-			expect(data.project).to.equal(42)
-			expect(client._otChannels['initalChannel'].rev).to.equal(7)
-			done()
-		})
-	})
 
 	it('should receive generic broadcast', (done) => {
 		client.once('message', (message) => {

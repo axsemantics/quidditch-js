@@ -21,7 +21,6 @@ class QuidditchClient extends EventEmitter {
 		}
 		this._config = Object.assign(defaultConfig, config)
 		this._url = url
-		this._joinedProject = null
 		this._otChannels = {} // keyed by channel name: {deltaInFlight, buffer, rev}
 		this._createSocket()
 	}
@@ -29,15 +28,6 @@ class QuidditchClient extends EventEmitter {
 	close () {
 		this._normalClose = true
 		this._socket.close()
-	}
-
-	join (projectId) {
-		const payload = [
-			'join',
-			{project: projectId}
-		]
-		this._socket.send(JSON.stringify(payload))
-		// return promise
 	}
 
 	call (name, data, opts) {
@@ -137,7 +127,6 @@ class QuidditchClient extends EventEmitter {
 			this._authenticate()
 			// start pinging
 			this._ping(this._socket)
-			// this._resubscribe()
 		})
 
 		this._socket.addEventListener('close', (event) => {
@@ -191,7 +180,6 @@ class QuidditchClient extends EventEmitter {
 			error: this._handleError.bind(this),
 			success: this._handleCallSuccess.bind(this),
 			pong: this._handlePong.bind(this),
-			authenticated: this._handleAuthenticated.bind(this),
 			joined: this._handleJoined.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
 		}
@@ -237,10 +225,6 @@ class QuidditchClient extends EventEmitter {
 	_handlePong (message) {
 		this.emit('pong')
 		this._pingState.latestPong = Date.now()
-	}
-
-	_handleAuthenticated (message) {
-		this.emit('authenticated')
 	}
 
 	_handleJoined (message) {

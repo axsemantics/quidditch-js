@@ -10,6 +10,7 @@ const mock = {
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
 		mock.server.on('connection', (socket) => {
+			socket.projectId = socket.upgradeReq.url.split('/')[2]
 			socket.on('message', mock.handleMessage.bind(this, socket))
 		})
 	},
@@ -50,7 +51,6 @@ const mock = {
 		const handlers = {
 			auth: mock.handleAuth,
 			ping: mock.handlePing,
-			join: mock.handleJoin,
 			'generic:increment': mock.handleIncrement,
 			'ot:delta': mock.handleOtDelta
 		}
@@ -61,22 +61,8 @@ const mock = {
 	handleAuth (socket, message) {
 		expect(message[1]).to.contain.all.keys('token')
 		if (message[1].token !== 'hunter2') return // TODO fail somehow
-		const response = ['authenticated']
-		if (socket.readyState !== 1) // socket still open?
-			return
-		socket.send(JSON.stringify(response))
-	},
-	handlePing (socket, message) {
-		if (mock.silence) return
-		const response = ['pong', message[1]]
-		if (socket.readyState !== 1) // socket still open?
-			return
-		socket.send(JSON.stringify(response))
-	},
-	handleJoin (socket, message) {
-		expect(message[1]).to.contain.all.keys('project')
 		const response = ['joined', {
-			project: message[1].project,
+			project: socket.projectId,
 			additionalData: {},
 			channels: {
 				'initalChannel': {
@@ -84,6 +70,13 @@ const mock = {
 				}
 			}
 		}]
+		if (socket.readyState !== 1) // socket still open?
+			return
+		socket.send(JSON.stringify(response))
+	},
+	handlePing (socket, message) {
+		if (mock.silence) return
+		const response = ['pong', message[1]]
 		if (socket.readyState !== 1) // socket still open?
 			return
 		socket.send(JSON.stringify(response))

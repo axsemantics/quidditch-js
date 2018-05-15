@@ -1,4 +1,4 @@
-/* global describe, before, it */
+/* global describe, before, after, it */
 
 const chai = require('chai')
 const sinon = require('sinon')
@@ -20,15 +20,15 @@ describe('Quidditch Client', () => {
 		}, done)
 	})
 
-	it('should connect', (done) => {
+	after(function () {
+		server.destroy()
+	})
+
+	it('should connect, authenticate & join automatically', (done) => {
 		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter2'})
-		client.once('open', done)
 		client.on('error', (error) => {
 			throw new Error(error) // let us hear the screams
 		})
-	})
-
-	it('should authenticate & join automatically', (done) => {
 		client.once('joined', (data) => {
 			expect(data).to.contain.all.keys('project', 'additionalData', 'channels')
 			expect(data.project).to.equal('my-project')

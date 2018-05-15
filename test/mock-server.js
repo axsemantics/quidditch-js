@@ -9,10 +9,13 @@ const mock = {
 	otChannels: {},
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
-		mock.server.on('connection', (socket) => {
-			socket.projectId = socket.upgradeReq.url.split('/')[2]
+		mock.server.on('connection', (socket, upgradeReq) => {
+			socket.projectId = upgradeReq.url.split('/')[2]
 			socket.on('message', mock.handleMessage.bind(this, socket))
 		})
+	},
+	destroy () {
+		mock.server.close()
 	},
 	killAll () {
 		for (let client of mock.server.clients) {

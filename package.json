@@ -12,7 +12,8 @@
     "build": "npm run build:cjs && npm run build:es && npm run build:iife",
     "test": "NODE_ENV=test npm run build:cjs && nyc mocha \"test/**/*.test.js\"",
     "lint": "eslint --ext .js src",
-    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+    "coveralls": "nyc report --reporter=text-lcov | coveralls",
+    "prepublishOnly": "npm run build"
   },
   "nyc": {
     "include": [

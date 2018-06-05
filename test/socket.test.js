@@ -211,6 +211,29 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should reset channels on join', (done) => {
+		server.sendJoined({
+			channels: {
+				newChannel: {last_revision: 3}
+			}
+		})
+		server.drop = true
+		let promiseRejected = false
+		let channelsReset = false
+		const promise1 = client.sendDelta('test', new Delta([{insert: 'Hello World'}])).catch(() => {})
+		const promise2 = client.sendDelta('test', new Delta([{retain: 1}])).catch((e) => {
+			promiseRejected = true
+			if (channelsReset && promiseRejected)
+				done()
+		})
+		client.once('joined', () => {
+			expect(Object.keys(client._otChannels)).to.deep.equal(['newChannel'])
+			channelsReset = true
+			if (channelsReset && promiseRejected)
+				done()
+		})
+	})
+
 	it('should close properly', (done) => {
 		client.once('closed', () => done())
 		client.once('open', () => done('should not open again'))

@@ -131,6 +131,9 @@ class QuidditchClient extends EventEmitter {
 
 		this._socket.addEventListener('close', (event) => {
 			this.socketState = 'closed'
+			for (const channelName of Object.keys(this._otChannels)) {
+				this._closeChannel(channelName)
+			}
 			this.emit('closed') // why past tense? because the socket is already closed and not currently closing
 			if (!this._normalClose) {
 				setTimeout(() => {
@@ -198,6 +201,16 @@ class QuidditchClient extends EventEmitter {
 		return {id, promise: deferred.promise}
 	}
 
+	_closeChannel (channelName) {
+		const channel = this._otChannels[channelName]
+		delete this._otChannels[channelName]
+		if (channel.buffer && channel.buffer.promises) {
+			for (const promise of channel.buffer.promises) {
+				promise.reject('closed')
+			}
+		}
+	}
+
 	_popPendingRequest (id) {
 		const req = this._openRequests[id]
 		this._openRequests[id] = undefined
@@ -229,12 +242,17 @@ class QuidditchClient extends EventEmitter {
 
 	_handleJoined (message) {
 		if (message[1].channels) { // initialize channel revision
-			for (const channelName of Object.keys(message[1].channels)) {
+			const newChannels = Object.keys(message[1].channels)
+			const closedChannels = Object.keys(this._otChannels).filter((key) => !newChannels.includes(key))
+			for (const channelName of newChannels) {
 				this._otChannels[channelName] = {
 					deltaInFlight: null,
 					buffer: null,
 					rev: message[1].channels[channelName].last_revision
 				}
+			}
+			for (const channelName of closedChannels) {
+				this._closeChannel(channelName)
 			}
 		}
 		this.emit('joined', message[1])

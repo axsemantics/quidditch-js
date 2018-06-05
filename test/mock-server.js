@@ -48,6 +48,9 @@ const mock = {
 		const payload = ['error', '9999999', 'ALARM']
 		mock.sendToAll(payload)
 	},
+	sendJoined (message) {
+		mock.sendToAll(['joined', message])
+	},
 	handleMessage (socket, rawMessage) {
 		if (mock.drop) return // fall silent
 		const message = JSON.parse(rawMessage)

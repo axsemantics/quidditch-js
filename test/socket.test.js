@@ -235,7 +235,10 @@ describe('Quidditch Client', () => {
 	})
 
 	it('should close properly', (done) => {
-		client.once('closed', () => done())
+		client.once('closed', () => {
+			expect(Object.keys(client._otChannels).length).to.equal(0)
+			done()
+		})
 		client.once('open', () => done('should not open again'))
 		client.close()
 	})

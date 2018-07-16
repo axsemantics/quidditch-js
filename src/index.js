@@ -42,7 +42,7 @@ class QuidditchClient extends EventEmitter {
 			id,
 			data
 		]
-		this._socket.send(JSON.stringify(payload))
+		this._send(JSON.stringify(payload))
 		setTimeout(() => {
 			if (this._openRequests[id]) {
 				const timeoutedRequest = this._popPendingRequest(id)
@@ -89,7 +89,7 @@ class QuidditchClient extends EventEmitter {
 				delta: deltaToSend.ops,
 				rev: channel.rev
 			}]
-			this._socket.send(JSON.stringify(payload))
+			this._send(JSON.stringify(payload))
 
 			return promise.then(handleAck)
 		}
@@ -147,12 +147,20 @@ class QuidditchClient extends EventEmitter {
 		this._nextRequestIndex = 1 // autoincremented rohrpost message id
 	}
 
+	_send (payload) {
+		this._socket.send(payload)
+		this.emit('log', {
+			direction: 'send',
+			data: payload
+		})
+	}
+
 	_authenticate () {
 		const payload = [
 			'auth',
 			{token: this._config.token}
 		]
-		this._socket.send(JSON.stringify(payload))
+		this._send(JSON.stringify(payload))
 	}
 
 	_ping (starterSocket) { // we need a ref to the socket to detect reconnects and stop the old ping loop
@@ -161,7 +169,7 @@ class QuidditchClient extends EventEmitter {
 			'ping',
 			timestamp
 		]
-		this._socket.send(JSON.stringify(payload))
+		this._send(JSON.stringify(payload))
 		this.emit('ping')
 		setTimeout(() => {
 			if (this._socket.readyState !== 1 || this._socket !== starterSocket) return // looping on old socket, abort
@@ -191,6 +199,10 @@ class QuidditchClient extends EventEmitter {
 		} else {
 			actionHandlers[message[0]](message)
 		}
+		this.emit('log', {
+			direction: 'receive',
+			data: rawMessage.data
+		})
 	}
 
 	// request - response promise matching

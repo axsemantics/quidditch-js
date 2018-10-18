@@ -12,7 +12,7 @@ export default {
 	},
 	plugins: [
 		babel({
-			ignore: 'node_modules'
+			ignore: ['node_modules']
 		}),
 		builtins(),
 		resolve({

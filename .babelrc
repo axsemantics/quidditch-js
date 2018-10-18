@@ -1,18 +1,23 @@
 {
-  "presets": [
-    [
-      "es2015",
-      {
-        "modules": false
-      }
-    ]
-  ],
-  "plugins": [
-    "external-helpers"
-  ],
-  "env": {
-    "test": {
-      "plugins": [ "istanbul" ]
-    }
-  }
+	"presets": [
+		[
+			"@babel/env", {
+				"modules": false,
+				"loose": true,
+				"targets": {
+					"chrome": 66
+				}
+			}
+		]
+	],
+	"plugins": [
+		["@babel/plugin-proposal-optional-chaining", { "loose": false }],
+		["@babel/plugin-proposal-nullish-coalescing-operator", { "loose": false }],
+		"@babel/plugin-proposal-json-strings"
+	],
+	"env": {
+		"test": {
+			"plugins": [ "istanbul" ]
+		}
+	}
 }

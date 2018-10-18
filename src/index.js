@@ -36,7 +36,7 @@ class QuidditchClient extends EventEmitter {
 		}
 		Object.assign(options, opts)
 
-		const {id, promise} = this._createRequest()
+		const { id, promise } = this._createRequest()
 		const payload = [
 			name,
 			id,
@@ -62,7 +62,7 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 
-		const handleAck = function ({rev}) {
+		const handleAck = function ({ rev }) {
 			channel.deltaInFlight = null
 			channel.rev = rev
 
@@ -83,7 +83,7 @@ class QuidditchClient extends EventEmitter {
 		}
 
 		const sendDelta = (deltaToSend) => {
-			const {id, promise} = this._createRequest()
+			const { id, promise } = this._createRequest()
 			channel.deltaInFlight = deltaToSend
 			const payload = ['ot:delta', id, channelName, {
 				delta: deltaToSend.ops,
@@ -158,7 +158,7 @@ class QuidditchClient extends EventEmitter {
 	_authenticate () {
 		const payload = [
 			'auth',
-			{token: this._config.token}
+			{ token: this._config.token }
 		]
 		this._send(JSON.stringify(payload))
 	}
@@ -209,8 +209,8 @@ class QuidditchClient extends EventEmitter {
 	_createRequest (args) {
 		const id = this._nextRequestIndex++
 		const deferred = defer()
-		this._openRequests[id] = {deferred, args}
-		return {id, promise: deferred.promise}
+		this._openRequests[id] = { deferred, args }
+		return { id, promise: deferred.promise }
 	}
 
 	_closeChannel (channelName) {

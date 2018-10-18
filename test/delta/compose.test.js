@@ -15,7 +15,7 @@ describe('Delta.compose()', () => {
 
 	it('should compose insert + retain', function () {
 		const a = new Delta().insert('A')
-		const b = new Delta().retain(1, { bold: true, color: 'red', font: null })
+		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red', font: null }})
 		const expected = new Delta().insert('A', { bold: true, color: 'red' })
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
@@ -36,8 +36,8 @@ describe('Delta.compose()', () => {
 
 	it('should compose delete + retain', function () {
 		const a = new Delta().delete(1)
-		const b = new Delta().retain(1, { bold: true, color: 'red' })
-		const expected = new Delta().delete(1).retain(1, { bold: true, color: 'red' })
+		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
+		const expected = new Delta().delete(1).retain(1, {attributes: { bold: true, color: 'red' }})
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
@@ -49,21 +49,21 @@ describe('Delta.compose()', () => {
 	})
 
 	it('should compose retain + insert', function () {
-		const a = new Delta().retain(1, { color: 'blue' })
+		const a = new Delta().retain(1, {attributes: { color: 'blue' }})
 		const b = new Delta().insert('B')
-		const expected = new Delta().insert('B').retain(1, { color: 'blue' })
+		const expected = new Delta().insert('B').retain(1, {attributes: { color: 'blue' }})
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose retain + retain', function () {
-		const a = new Delta().retain(1, { color: 'blue' })
-		const b = new Delta().retain(1, { bold: true, color: 'red', font: null })
-		const expected = new Delta().retain(1, { bold: true, color: 'red', font: null })
+		const a = new Delta().retain(1, {attributes: { color: 'blue' }})
+		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red', font: null }})
+		const expected = new Delta().retain(1, {attributes: { bold: true, color: 'red', font: null }})
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
 
 	it('should compose retain + delete', function () {
-		const a = new Delta().retain(1, { color: 'blue' })
+		const a = new Delta().retain(1, {attributes: { color: 'blue' }})
 		const b = new Delta().delete(1)
 		const expected = new Delta().delete(1)
 		expect(a.compose(b)).to.deep.equal(expected)
@@ -102,7 +102,7 @@ describe('Delta.compose()', () => {
 
 	it('should remove all attributes', function () {
 		const a = new Delta().insert('A', { bold: true })
-		const b = new Delta().retain(1, { bold: null })
+		const b = new Delta().retain(1, {attributes: { bold: null }})
 		const expected = new Delta().insert('A')
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
@@ -112,8 +112,8 @@ describe('Delta.compose()', () => {
 		const attr2 = { bold: true }
 		const a1 = new Delta().insert('Test', attr1)
 		const a2 = new Delta().insert('Test', attr1)
-		const b1 = new Delta().retain(1, { color: 'red' }).delete(2)
-		const b2 = new Delta().retain(1, { color: 'red' }).delete(2)
+		const b1 = new Delta().retain(1, {attributes: { color: 'red' }}).delete(2)
+		const b2 = new Delta().retain(1, {attributes: { color: 'red' }}).delete(2)
 		const expected = new Delta().insert('T', { color: 'red', bold: true }).insert('t', attr1)
 		expect(a1.compose(b1)).to.deep.equal(expected)
 		expect(a1).to.deep.equal(a2)

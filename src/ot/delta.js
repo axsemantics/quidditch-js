@@ -27,11 +27,20 @@ export default class Delta {
 		return this.push(op)
 	}
 
-	retain (length, attributes) {
+	retain (length, args) {
+		const {attributes, subOps} = args ?? {}
 		if (length <= 0) return this
 		const op = { retain: length }
 		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
 			op.attributes = attributes
+		}
+		// subOps can be Delta, object, or array
+		if (subOps != null && (typeof subOps === 'object' && Object.keys(subOps).length > 0)) {
+			if (subOps instanceof Delta) {
+				op.$sub = subOps.ops
+			} else {
+				op.$sub = subOps
+			}
 		}
 		return this.push(op)
 	}
@@ -191,7 +200,7 @@ export default class Delta {
 						const thisOp = thisIter.next(opLength)
 						const otherOp = otherIter.next(opLength)
 						if (equal(thisOp.insert, otherOp.insert)) {
-							newDelta.retain(opLength, attributeOperations.diff(thisOp.attributes, otherOp.attributes))
+							newDelta.retain(opLength, {attributes: attributeOperations.diff(thisOp.attributes, otherOp.attributes)})
 						} else {
 							newDelta.push(otherOp)['delete'](opLength)
 						}
@@ -228,7 +237,7 @@ export default class Delta {
 					newDelta.push(otherOp)
 				} else {
 					// We retain either their retain or insert
-					newDelta.retain(length, attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority))
+					newDelta.retain(length, {attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority)})
 				}
 			}
 		}

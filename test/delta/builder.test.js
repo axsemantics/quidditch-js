@@ -5,6 +5,7 @@ const chai = require('chai')
 const expect = chai.expect
 
 const { Delta } = require('../../dist/quidditch.js')
+const fixtures = require('./fixtures')
 
 describe('Delta', function () {
 	const ops = [
@@ -74,11 +75,20 @@ describe('insert()', function () {
 	// })
 	//
 	it('insert object', function () {
-		const object = { container: {} }
+		const object = { t: 'container' }
 		const attr = { alt: 'Quill' }
 		const delta = new Delta().insert(object, attr)
 		expect(delta.ops.length).to.equal(1)
 		expect(delta.ops[0]).to.deep.equal({ insert: object, attributes: attr })
+	})
+
+	it('insert objects', function () {
+		const delta = new Delta()
+			.insert('abc')
+			.insert({_t: 'container'})
+			.insert({_t: 'case'})
+			.insert('def')
+		expect(delta.ops).to.deep.equal(fixtures.flatObjectsOps())
 	})
 
 	it('insert(text, attributes)', function () {
@@ -167,8 +177,8 @@ describe('retain()', function () {
 	})
 
 	it('retain(length, {subOps: [ops]})', function () {
-		const delta = new Delta().delete(2).retain(1, {subOps: [{insert: {container: {}}}]})
-		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $sub: [{insert: {container: {}}}]}])
+		const delta = new Delta().delete(2).retain(1, {subOps: [{insert: {_t: 'container'}}]})
+		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $sub: [{insert: {_t: 'container'}}]}])
 	})
 })
 

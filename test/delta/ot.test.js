@@ -7,6 +7,7 @@ const expect = chai.expect
 chai.use(sinonChai)
 
 const { Delta } = require('../../dist/quidditch.js')
+const fixtures = require('./fixtures')
 
 describe('Operational Transforms', () => {
 	it('should support building methods', () => {

@@ -180,6 +180,11 @@ describe('retain()', function () {
 		const delta = new Delta().delete(2).retain(1, {subOps: [{insert: {_t: 'container'}}]})
 		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $sub: [{insert: {_t: 'container'}}]}])
 	})
+
+	it('retain(length, {set})', function () {
+		const delta = new Delta().delete(2).retain(1, {set: {_t: 'container'}})
+		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $set: {_t: 'container'}}])
+	})
 })
 
 describe('push()', function () {
@@ -226,6 +231,42 @@ describe('push()', function () {
 	it('push(op) consecutive retains with mismatched attributes', function () {
 		const delta = new Delta().retain(1, {attributes: { bold: true }})
 		delta.push({ retain: 3 })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with new $sub', function () {
+		const delta = new Delta().retain(1)
+		delta.push({ retain: 1, $sub: [] })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with matching $subs', function () {
+		const delta = new Delta().retain(1, {subOps: [{insert: 'a'}]})
+		delta.push({ retain: 1, $sub: [{insert: 'a'}] })
+		expect(delta.ops.length).to.equal(1)
+	})
+
+	it('push(op) consecutive retains with mismatched $subs', function () {
+		const delta = new Delta().retain(1, {subOps: [{insert: 'a'}]})
+		delta.push({ retain: 1, $sub: [{insert: 'b'}] })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with new $set', function () {
+		const delta = new Delta().retain(1)
+		delta.push({ retain: 1, $set: {} })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with matching $subs', function () {
+		const delta = new Delta().retain(1, {set: {a: 3}})
+		delta.push({ retain: 1, $set: {a: 3} })
+		expect(delta.ops.length).to.equal(1)
+	})
+
+	it('push(op) consecutive retains with mismatched $subs', function () {
+		const delta = new Delta().retain(1, {set: {a: 3}})
+		delta.push({ retain: 1, $set: {b: 4} })
 		expect(delta.ops.length).to.equal(2)
 	})
 

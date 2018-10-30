@@ -1,4 +1,5 @@
-import equal from 'deep-equal'
+import cloneDeep from 'lodash/cloneDeep'
+import equal from 'lodash/isEqual'
 
 export function getOpLength (op) {
 	if (typeof op['delete'] === 'number') {
@@ -14,8 +15,7 @@ const attributes = {
 	compose (a, b, keepNull) {
 		if (typeof a !== 'object') a = {}
 		if (typeof b !== 'object') b = {}
-		// TODO is deep copy relevant?
-		let attributes = Object.assign({}, b)
+		let attributes = cloneDeep(b)
 		if (!keepNull) {
 			attributes = Object.keys(attributes).reduce(function (copy, key) {
 				if (attributes[key] != null) {
@@ -24,6 +24,7 @@ const attributes = {
 				return copy
 			}, {})
 		}
+		// TODO make deep?
 		for (const key in a) {
 			if (a[key] !== undefined && b[key] === undefined) {
 				attributes[key] = a[key]

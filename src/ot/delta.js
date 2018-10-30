@@ -1,10 +1,22 @@
 // lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
 import diff from 'fast-diff'
-import equal from 'deep-equal'
+import equal from 'lodash/isEqual'
+import cloneDeep from 'lodash/cloneDeep'
 import { getOpLength, attributeOperations } from './utils'
 import Iterator from './op-iterator'
+import { SUBTYPES, BASE_TYPES } from './subtypes'
 
 const NULL_CHARACTER = String.fromCharCode(0) // Placeholder char for embed in diff()
+
+const composeOplist = function (a, b) {
+	if (a && b) {
+		return new Delta(a).compose(new Delta(b)).ops
+	} else if (a) {
+		return cloneDeep(a)
+	} else if (b) {
+		return cloneDeep(b)
+	}
+}
 
 export default class Delta {
 	constructor (ops = []) {
@@ -28,11 +40,14 @@ export default class Delta {
 	}
 
 	retain (length, args) {
-		const {attributes, subOps} = args ?? {}
+		const {attributes, subOps, set} = args ?? {}
 		if (length <= 0) return this
 		const op = { retain: length }
 		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
 			op.attributes = attributes
+		}
+		if (set != null && typeof set === 'object' && Object.keys(set).length > 0) {
+			op.$set = set
 		}
 		// subOps can be Delta, object, or array
 		if (subOps != null && (typeof subOps === 'object' && Object.keys(subOps).length > 0)) {
@@ -74,9 +89,14 @@ export default class Delta {
 					return this
 				}
 
-				if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number') {
+				if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number' &&
+					equal(newOp.$sub, lastOp.$sub) &&
+					equal(newOp.$set, lastOp.$set)
+				) {
 					this.ops[index - 1] = { retain: lastOp.retain + newOp.retain }
 					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
+					if (newOp.$sub) this.ops[index - 1].$sub = newOp.$sub
+					if (newOp.$set) this.ops[index - 1].$set = newOp.$set
 					return this
 				}
 			}
@@ -112,7 +132,7 @@ export default class Delta {
 
 	chop () {
 		const lastOp = this.ops[this.ops.length - 1]
-		if (lastOp && lastOp.retain && !lastOp.attributes) {
+		if (lastOp && lastOp.retain && !lastOp.attributes && !lastOp.$sub && !lastOp.$set) {
 			this.ops.pop()
 		}
 		return this
@@ -144,8 +164,42 @@ export default class Delta {
 					const newOp = {}
 					if (typeof thisOp.retain === 'number') { // if both retain, also retain
 						newOp.retain = length
+						if (thisOp.$set || otherOp.$set) {
+							newOp.$set = attributeOperations.compose(thisOp.$set, otherOp.$set, true)
+						}
+						if (thisOp.$sub && otherOp.$sub) {
+							const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+							const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+							const newSubs = Object.assign({}, thisSubs)
+							for (const [key, value] of Object.entries(otherSubs)) {
+								newSubs[key] = composeOplist(thisSubs[key], value)
+							}
+							newOp.$sub = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+						} else if (thisOp.$sub || otherOp.$sub) {
+							newOp.$sub = composeOplist(thisOp.$sub, otherOp.$sub)
+						}
 					} else {
-						newOp.insert = thisOp.insert // old insert overrides new retain
+						if (typeof thisOp !== 'object' || (!otherOp.$sub && !otherOp.$set)) {
+							newOp.insert = thisOp.insert // old insert overrides new retain
+						} else {
+							const typeMark = thisOp.insert._t
+							if (!SUBTYPES[typeMark]) throw new TypeError(`Invalid item type ${typeMark}`)
+							const typeSpec = SUBTYPES[typeMark]
+							// TODO typechecking
+							newOp.insert = attributeOperations.compose(thisOp.insert, otherOp.$set, false)
+							if (otherOp.$sub) {
+								const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+								for (const [key, value] of Object.entries(otherSubs)) {
+									if (typeSpec[key] === BASE_TYPES.DELTA_STR) {
+										newOp.insert[key] = new Delta(value).apply(thisOp.insert[key] || '')
+									} else if (typeSpec[key] === BASE_TYPES.DELTA) {
+										newOp.insert[key] = composeOplist(thisOp.insert[key], value)
+									} else {
+										throw new TypeError(` ${typeMark}.${key} is not a delta`)
+									}
+								}
+							}
+						}
 					}
 					// Preserve null when composing with a retain, otherwise remove it for inserts
 					const attributes = attributeOperations.compose(thisOp.attributes, otherOp.attributes, typeof thisOp.retain === 'number')

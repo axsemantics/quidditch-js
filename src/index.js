@@ -2,6 +2,7 @@
 import EventEmitter from 'events'
 import Delta from './ot/delta.js'
 import OpIterator from './ot/op-iterator.js'
+import { SUBTYPES, setSubtypes, BASE_TYPES } from './ot/subtypes.js'
 
 const defer = function () {
 	const deferred = {}
@@ -294,4 +295,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, QuidditchClient, OpIterator }
+export { Delta, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES }

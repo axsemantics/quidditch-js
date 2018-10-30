@@ -125,7 +125,7 @@ describe('Delta.compose()', () => {
 	it('should compose between objects', function () {
 		const a = new Delta(fixtures.flatObjectsOps())
 		const b = new Delta().retain(4).insert({_t: 'random'})
-		const expected = [{insert: 'abc'}, {insert: {_t: 'container'}}, {insert: {_t: 'random'}}, {insert: {_t: 'container'}}, {insert: 'def'}]
+		const expected = [{insert: 'abc'}, {insert: {_t: 'container'}}, {insert: {_t: 'random'}}, {insert: {_t: 'case'}}, {insert: 'def'}]
 		expect(a.compose(b).ops).to.deep.equal(expected)
 	})
 
@@ -174,8 +174,8 @@ describe('Delta.compose()', () => {
 		flat[1].insert.container_type = 'bar'
 		const a = new Delta(flat)
 		const b = new Delta().retain(3).retain(1, {set: {container_type: null, id: null}})
-		const expected = [{insert: 'abc'}, {insert: {_t: 'container'}}, {insert: {_t: 'random'}}, {insert: {_t: 'container'}}, {insert: 'def'}]
-		expect(a.compose(b)).ops.to.deep.equal(expected)
+		const expected = [{insert: 'abc'}, {insert: {_t: 'container'}}, {insert: {_t: 'case'}}, {insert: 'def'}]
+		expect(a.compose(b).ops).to.deep.equal(expected)
 	})
 
 	it('should compose $sub with state 1', function () {
@@ -246,7 +246,7 @@ describe('Delta.compose()', () => {
 
 	it('should compose $sub with state 3', function () {
 		const a = new Delta(fixtures.deltaState())
-		const b = new Delta().retain(2).retain(1, {subOps: [fixtures.opRetainB()]})
+		const b = new Delta().retain(2).retain(1, {subOps: [{retain: 1}, fixtures.opRetainB()]})
 		const expected = new Delta().insert('ab').insert({
 			_t: 'random',
 			items: [{
@@ -281,7 +281,6 @@ describe('Delta.compose()', () => {
 		const expected = new Delta().retain(2).retain(1, {subOps: [fixtures.opRetainA(), fixtures.opRetainB()]})
 		expect(a.compose(b)).to.deep.equal(expected)
 	})
-
 
 	// do we need type checks in the frontend?
 	// [

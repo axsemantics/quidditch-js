@@ -7,5 +7,5 @@ export default {
 		file: 'dist/quidditch.es.js'
 	},
 	plugins: [babel()],
-	external: ['events', 'fast-diff', 'deep-equal']
+	external: ['events', 'fast-diff', 'deep-equal', 'lodash/cloneDeep', 'lodash/isEqual']
 }

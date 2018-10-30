@@ -37,9 +37,18 @@ export default class OpIterator {
 			}
 			if (typeof nextOp.retain === 'number') {
 				retOp.retain = length
+				if (nextOp.$sub) {
+					retOp.$sub = nextOp.$sub
+				}
+				if (nextOp.$set) {
+					retOp.$set = nextOp.$set
+				}
 			}
 			if (typeof nextOp.insert === 'string') {
 				retOp.insert = nextOp.insert.substr(offset, length)
+			}
+			if (typeof nextOp.insert === 'object') {
+				retOp.insert = nextOp.insert
 			}
 			return retOp
 		}

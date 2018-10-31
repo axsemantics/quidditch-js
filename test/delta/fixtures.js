@@ -14,7 +14,8 @@ setSubtypes({
 	container: {
 		id: String,
 		container_type: String,
-		text: BASE_TYPES.DELTA_STR
+		text: BASE_TYPES.DELTA_STR,
+		lemma: BASE_TYPES.DELTA_STR
 	}
 })
 

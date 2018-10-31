@@ -146,9 +146,9 @@ describe('Delta.transform()', () => {
 
 	it('should transform subOps and set', function () {
 		const a = new Delta().delete(4).retain(1, {set: {id: 'abc'}, subOps: {lemma: []}})
-		const b = new Delta().retain(4).retain(1, {set: {container_type: 'foo'}, subOps: {text: new Delta().insert('bla').ops}})
+		const b = new Delta().retain(4).retain(1, {set: {container_type: 'foo'}, subOps: {text: new Delta().insert('bar').ops}})
 		const expected = [{retain: 1, $set: {container_type: 'foo'}, $sub: {text: [{insert: 'bar'}]}}]
-		expect(a.compose(b).ops).to.deep.equal(expected)
+		expect(a.transform(b).ops).to.deep.equal(expected)
 	})
 
 	it('should transform $sub deep text', function () {
@@ -203,23 +203,20 @@ describe('Delta.transform()', () => {
 		]})
 		const expected = new Delta().delete(2).retain(1, {subOps: [{
 			retain: 1,
-			$sub: [{
-				retain: 1,
-				$sub: {
-					text: [
-						{retain: 1},
-						{insert: 'd'}
-					]
-				}
-			}, {
-				retain: 1,
-				$sub: {
-					text: [
-						{insert: 'd'}
-					]
-				}
-			}]}
-		]})
+			$sub: {
+				text: [
+					{retain: 1},
+					{insert: 'd'}
+				]
+			}
+		}, {
+			retain: 1,
+			$sub: {
+				text: [
+					{insert: 'd'}
+				]
+			}
+		}]})
 		expect(a.transform(b, true)).to.deep.equal(expected)
 	})
 })

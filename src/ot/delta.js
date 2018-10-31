@@ -291,7 +291,27 @@ export default class Delta {
 					newDelta.push(otherOp)
 				} else {
 					// We retain either their retain or insert
-					newDelta.retain(length, {attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority)})
+					let newSubs
+					if (thisOp.$sub && otherOp.$sub) {
+						const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+						const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+						newSubs = {}
+						for (const [key, value] of Object.entries(otherSubs)) {
+							if (thisSubs[key]) {
+								newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), hasPriority).ops
+							} else {
+								newSubs[key] = cloneDeep(value)
+							}
+						}
+						newSubs = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+					} else if (otherOp.$sub) {
+						newSubs = cloneDeep(otherOp.$sub)
+					}
+					newDelta.retain(length, {
+						attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority),
+						set: attributeOperations.transform(thisOp.$set, otherOp.$set, hasPriority),
+						subOps: newSubs
+					})
 				}
 			}
 		}

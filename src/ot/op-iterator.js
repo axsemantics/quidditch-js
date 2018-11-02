@@ -8,6 +8,20 @@ export default class OpIterator {
 		this.offset = 0
 	}
 
+	// override for custom behaviour
+	getOpLength (op) {
+		return getOpLength(op)
+	}
+
+	copyInsert (op, offset, length) {
+		if (typeof op.insert === 'string') {
+			return op.insert.substr(offset, length)
+		}
+		if (typeof op.insert === 'object') {
+			return op.insert
+		}
+	}
+
 	hasNext () {
 		return this.peekLength() < Infinity
 	}
@@ -20,7 +34,7 @@ export default class OpIterator {
 		}
 
 		const offset = this.offset
-		const opLength = getOpLength(nextOp)
+		const opLength = this.getOpLength(nextOp)
 		if (length >= opLength - offset) {
 			length = opLength - offset
 			this.index++
@@ -44,11 +58,8 @@ export default class OpIterator {
 					retOp.$set = nextOp.$set
 				}
 			}
-			if (typeof nextOp.insert === 'string') {
-				retOp.insert = nextOp.insert.substr(offset, length)
-			}
-			if (typeof nextOp.insert === 'object') {
-				retOp.insert = nextOp.insert
+			if (nextOp.insert) {
+				retOp.insert = this.copyInsert(nextOp, offset, length)
 			}
 			return retOp
 		}
@@ -60,7 +71,7 @@ export default class OpIterator {
 
 	peekLength () {
 		if (this.ops[this.index]) {
-			return getOpLength(this.ops[this.index]) - this.offset
+			return this.getOpLength(this.ops[this.index]) - this.offset
 		}
 		return Infinity
 	}

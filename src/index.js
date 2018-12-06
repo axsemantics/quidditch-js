@@ -192,6 +192,7 @@ class QuidditchClient extends EventEmitter {
 			success: this._handleCallSuccess.bind(this),
 			pong: this._handlePong.bind(this),
 			joined: this._handleJoined.bind(this),
+			join: this._handleJoinError.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
 		}
 		if (actionHandlers[message[0]] === undefined) {
@@ -268,6 +269,10 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 		this.emit('joined', message[1])
+	}
+
+	_handleJoinError (message) {
+		this.emit('error', message[1].error)
 	}
 
 	_handleOtDelta (message) {

@@ -1,7 +1,6 @@
 /* global describe, before, after, it */
 
 const chai = require('chai')
-const sinon = require('sinon')
 const sinonChai = require('sinon-chai')
 const expect = chai.expect
 chai.use(sinonChai)
@@ -22,6 +21,31 @@ describe('Quidditch Client', () => {
 
 	after(function () {
 		server.destroy()
+	})
+
+	it('should connect, and fail on wrong authentication', (done) => {
+		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter3'})
+		client.on('error', () => {
+			client.close()
+			done()
+		})
+		client.once('joined', (data) => {
+			done('should not join')
+		})
+	})
+
+	it('should connect, and fail on join', (done) => {
+		server.failJoin = true
+		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter2'})
+		client.on('error', () => {
+			server.failJoin = false
+			client.close()
+			done()
+		})
+		client.once('joined', (data) => {
+			server.failJoin = false
+			done('should not join')
+		})
 	})
 
 	it('should connect, authenticate & join automatically', (done) => {

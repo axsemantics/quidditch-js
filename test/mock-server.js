@@ -6,6 +6,7 @@ const mock = {
 	silence: false,
 	server: null,
 	drop: false,
+	failJoin: false,
 	otChannels: {},
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
@@ -66,16 +67,22 @@ const mock = {
 	},
 	handleAuth (socket, message) {
 		expect(message[1]).to.contain.all.keys('token')
-		if (message[1].token !== 'hunter2') return // TODO fail somehow
-		const response = ['joined', {
-			project: socket.projectId,
-			additionalData: {},
-			channels: {
-				'initalChannel': {
-					last_revision: 7
+		let response
+		if (message[1].token !== 'hunter2') {
+			response = ['error', 'WRONG TOKEN']
+		} else if (mock.failJoin) {
+			response = ['join', {error: 'YOU LOOSE'}]
+		} else {
+			response = ['joined', {
+				project: socket.projectId,
+				additionalData: {},
+				channels: {
+					'initalChannel': {
+						last_revision: 7
+					}
 				}
-			}
-		}]
+			}]
+		}
 		if (socket.readyState !== 1) // socket still open?
 			return
 		socket.send(JSON.stringify(response))

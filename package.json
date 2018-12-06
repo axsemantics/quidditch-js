@@ -1,6 +1,6 @@
 {
   "name": "quidditch",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Quidditch Client for the Browser",
   "main": "dist/quidditch.js",
   "jsnext:main": "dist/quidditch.es.js",

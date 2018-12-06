@@ -17,6 +17,7 @@ class QuidditchClient extends EventEmitter {
 		super()
 		const defaultConfig = {
 			pingInterval: 5000,
+			joinTimeout: 60000,
 			token: ''
 		}
 		this._config = Object.assign(defaultConfig, config)
@@ -28,6 +29,8 @@ class QuidditchClient extends EventEmitter {
 	close () {
 		this._normalClose = true
 		this._socket.close()
+		clearTimeout(this._joinTimeout)
+		clearTimeout(this._authenticationTimeout)
 	}
 
 	call (name, data, opts) {
@@ -125,8 +128,9 @@ class QuidditchClient extends EventEmitter {
 			this.emit('open')
 			this.socketState = 'open'
 			this._authenticate()
-			// start pinging
-			this._ping(this._socket)
+			this._authenticationTimeout = setTimeout(() => {
+				this._handlePingTimeout()
+			}, this._config.pingInterval)
 		})
 
 		this._socket.addEventListener('close', (event) => {
@@ -145,6 +149,8 @@ class QuidditchClient extends EventEmitter {
 		this._socket.addEventListener('message', this._processMessage.bind(this))
 		this._openRequests = {} // save deferred promises from requests waiting for reponse
 		this._nextRequestIndex = 1 // autoincremented rohrpost message id
+		this._authenticationTimeout = null
+		this._joinTimeout = null
 	}
 
 	_send (payload) {
@@ -164,6 +170,7 @@ class QuidditchClient extends EventEmitter {
 	}
 
 	_ping (starterSocket) { // we need a ref to the socket to detect reconnects and stop the old ping loop
+		if (this._socket.readyState !== 1) return
 		const timestamp = Date.now()
 		const payload = [
 			'ping',
@@ -191,6 +198,7 @@ class QuidditchClient extends EventEmitter {
 			error: this._handleError.bind(this),
 			success: this._handleCallSuccess.bind(this),
 			pong: this._handlePong.bind(this),
+			authenticated: this._handleAuthenticated.bind(this),
 			joined: this._handleJoined.bind(this),
 			join: this._handleJoinError.bind(this),
 			'ot:delta': this._handleOtDelta.bind(this)
@@ -253,7 +261,17 @@ class QuidditchClient extends EventEmitter {
 		this._pingState.latestPong = Date.now()
 	}
 
+	_handleAuthenticated () {
+		clearTimeout(this._authenticationTimeout)
+		this._authenticationTimeout = null
+		this._joinTimeout = setTimeout(() => {
+			this._handlePingTimeout()
+		}, this._config.joinTimeout)
+	}
+
 	_handleJoined (message) {
+		clearTimeout(this._joinTimeout)
+		this._joinTimeout = null
 		if (message[1].channels) { // initialize channel revision
 			const newChannels = Object.keys(message[1].channels)
 			const closedChannels = Object.keys(this._otChannels).filter((key) => !newChannels.includes(key))
@@ -269,9 +287,13 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 		this.emit('joined', message[1])
+		// start pinging
+		this._ping(this._socket)
 	}
 
 	_handleJoinError (message) {
+		clearTimeout(this._joinTimeout)
+		this._joinTimeout = null
 		this.emit('error', message[1].error)
 	}
 

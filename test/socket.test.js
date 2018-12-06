@@ -23,8 +23,34 @@ describe('Quidditch Client', () => {
 		server.destroy()
 	})
 
+	it('should detect auth timeouts and reconnect', (done) => {
+		server.silence = true
+		client = new QuidditchClient(WS_URL, {pingInterval: 300, token: 'hunter2'})
+		client.once('closed', () => {
+			server.silence = false
+			client.once('joined', () => {
+				client.close()
+				done()
+			})
+		})
+		client.once('ping', () => done('should not ping'))
+	})
+
+	it('should detect join timeouts and reconnect', (done) => {
+		server.joinSilence = true
+		client = new QuidditchClient(WS_URL, {pingInterval: 50, joinTimeout: 300, token: 'hunter2'})
+		client.once('closed', () => {
+			server.joinSilence = false
+			client.once('joined', () => {
+				client.close()
+				done()
+			})
+		})
+		client.once('ping', () => done('should not ping'))
+	})
+
 	it('should connect, and fail on wrong authentication', (done) => {
-		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter3'})
+		client = new QuidditchClient(WS_URL, {token: 'hunter3'})
 		client.on('error', () => {
 			client.close()
 			done()
@@ -36,7 +62,7 @@ describe('Quidditch Client', () => {
 
 	it('should connect, and fail on join', (done) => {
 		server.failJoin = true
-		client = new QuidditchClient(WS_URL, {pingInterval: 300, reconnectDelay: 300, token: 'hunter2'})
+		client = new QuidditchClient(WS_URL, {token: 'hunter2'})
 		client.on('error', () => {
 			server.failJoin = false
 			client.close()
@@ -71,7 +97,7 @@ describe('Quidditch Client', () => {
 			})
 		}
 		count()
-	}).timeout(1500)
+	}).timeout(2000)
 
 	it('should receive generic broadcast', (done) => {
 		client.once('message', (message) => {

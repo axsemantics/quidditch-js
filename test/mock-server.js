@@ -4,6 +4,7 @@ const expect = chai.expect
 
 const mock = {
 	silence: false,
+	joinSilence: false,
 	server: null,
 	drop: false,
 	failJoin: false,
@@ -66,6 +67,9 @@ const mock = {
 		}
 	},
 	handleAuth (socket, message) {
+		if (mock.silence) return
+		socket.send(JSON.stringify(['authenticated']))
+		if (mock.joinSilence) return
 		expect(message[1]).to.contain.all.keys('token')
 		let response
 		if (message[1].token !== 'hunter2') {

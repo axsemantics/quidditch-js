@@ -250,7 +250,7 @@ class QuidditchClient extends EventEmitter {
 	_handleCallSuccess (message) {
 		const req = this._popPendingRequest(message[1])
 		if (req === null || req === undefined) {
-			this.emit('error', `no saved request with id: ${message.id}`)
+			this.emit('error', `no saved request with id: ${message[1]}`)
 		} else {
 			req.deferred.resolve(message[2])
 		}

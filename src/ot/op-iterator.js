@@ -1,5 +1,6 @@
 // lifted from https://github.com/quilljs/delta/blob/master/lib/op.js
 import { getOpLength } from './utils'
+import DeltaString from './string'
 
 export default class OpIterator {
 	constructor (ops) {
@@ -14,7 +15,7 @@ export default class OpIterator {
 	}
 
 	copyInsert (op, offset, length) {
-		if (typeof op.insert === 'string') {
+		if (op.insert instanceof DeltaString) {
 			return op.insert.substr(offset, length)
 		}
 		if (typeof op.insert === 'object') {

@@ -3,7 +3,7 @@
 
 const chai = require('chai')
 const expect = chai.expect
-
+chai.use(require('../delta-string-utils'))
 const { Delta } = require('../../dist/quidditch.js')
 const fixtures = require('./fixtures')
 
@@ -52,13 +52,13 @@ describe('insert()', function () {
 	it('insert(text)', function () {
 		const delta = new Delta().insert('test')
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
 	})
 
 	it('insert(text, null)', function () {
 		const delta = new Delta().insert('test', null)
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
 	})
 
 	// it('insert(embed)', function () {
@@ -79,7 +79,7 @@ describe('insert()', function () {
 		const attr = { alt: 'Quill' }
 		const delta = new Delta().insert(object, attr)
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: object, attributes: attr })
+		expect(delta.ops[0]).to.equalDelta({ insert: object, attributes: attr })
 	})
 
 	it('insert objects', function () {
@@ -88,37 +88,37 @@ describe('insert()', function () {
 			.insert({_t: 'container'})
 			.insert({_t: 'case'})
 			.insert('def')
-		expect(delta.ops).to.deep.equal(fixtures.flatObjectsOps())
+		expect(delta.ops).to.equalDelta(fixtures.flatObjectsOps())
 	})
 
 	it('insert(text, attributes)', function () {
 		const delta = new Delta().insert('test', { bold: true })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test', attributes: { bold: true } })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test', attributes: { bold: true } })
 	})
 
 	it('insert(text) after delete', function () {
 		const delta = new Delta().delete(1).insert('a')
 		const expected = new Delta().insert('a').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text) after delete with merge', function () {
 		const delta = new Delta().insert('a').delete(1).insert('b')
 		const expected = new Delta().insert('ab').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text) after delete no merge', function () {
 		const delta = new Delta().insert(1).delete(1).insert('a')
 		const expected = new Delta().insert(1).insert('a').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text, {})', function () {
 		const delta = new Delta().insert('a', {})
 		const expected = new Delta().insert('a')
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 })
 
@@ -205,14 +205,14 @@ describe('push()', function () {
 		const delta = new Delta().insert('a')
 		delta.push({ insert: 'b' })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'ab' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'ab' })
 	})
 
 	it('push(op) consecutive texts with matching attributes', function () {
 		const delta = new Delta().insert('a', { bold: true })
 		delta.push({ insert: 'b', attributes: { bold: true } })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'ab', attributes: { bold: true } })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'ab', attributes: { bold: true } })
 	})
 
 	it('push(op) consecutive retains with matching attributes', function () {

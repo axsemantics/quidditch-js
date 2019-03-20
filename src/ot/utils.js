@@ -1,5 +1,29 @@
 import cloneDeep from 'lodash/cloneDeep'
-import equal from 'lodash/isEqual'
+import cloneDeepWith from 'lodash/cloneDeepWith'
+import isEqualWith from 'lodash/isEqualWith'
+
+import DeltaString from './string'
+import { SUBTYPES, BASE_TYPES } from './subtypes'
+
+const deltaStringEqualCustomizer = function (a, b) {
+	if (a instanceof DeltaString || b instanceof DeltaString) {
+		return a == b // eslint-disable-line eqeqeq
+	}
+}
+
+export function isEqual (a, b) {
+	return isEqualWith(a, b, deltaStringEqualCustomizer)
+}
+
+const deltaStringCloneCustomizer = function (value) {
+	if (value instanceof DeltaString) {
+		return value.slice()
+	}
+}
+
+export function clone (obj) {
+	return cloneDeepWith(obj, deltaStringCloneCustomizer)
+}
 
 export function getOpLength (op) {
 	if (typeof op['delete'] === 'number') {
@@ -7,8 +31,43 @@ export function getOpLength (op) {
 	} else if (typeof op.retain === 'number') {
 		return op.retain
 	} else {
-		return typeof op.insert === 'string' ? op.insert.length : 1
+		return op.insert instanceof DeltaString ? op.insert.length : 1
 	}
+}
+
+export function convertOps (ops) {
+	const convertOp = function (op) {
+		// convert strings to DeltaString
+		if (typeof op.insert === 'string') {
+			op.insert = new DeltaString(op.insert)
+			return op
+		}
+
+		if (op.retain?.$sub) {
+			convertOps(op.retain.$sub)
+			return op
+		}
+
+		const typeSpec = SUBTYPES[op.insert?._t]
+		if (typeSpec) {
+			for (const [key, value] of Object.entries(op.insert)) {
+				if (typeSpec[key] === BASE_TYPES.DELTA_STR && !(value instanceof DeltaString)) {
+					op.insert[key] = new DeltaString(value)
+				}
+				if (typeSpec[key] === BASE_TYPES.DELTA) {
+					convertOps(op.insert[key])
+				}
+			}
+		}
+	}
+
+	if (!(ops instanceof Array)) {
+		return convertOp(ops)
+	}
+	for (const op of ops) {
+		convertOp(op)
+	}
+	return ops
 }
 
 const attributes = {
@@ -37,7 +96,7 @@ const attributes = {
 		if (typeof a !== 'object') a = {}
 		if (typeof b !== 'object') b = {}
 		var attributes = Object.keys(a).concat(Object.keys(b)).reduce(function (attributes, key) {
-			if (!equal(a[key], b[key])) {
+			if (!isEqual(a[key], b[key])) {
 				attributes[key] = b[key] === undefined ? null : b[key]
 			}
 			return attributes

@@ -5,7 +5,7 @@ const expect = chai.expect
 
 const { Delta } = require('../../dist/quidditch.js')
 
-describe('diff()', function () {
+describe.skip('diff()', function () {
 	it('insert', function () {
 		const a = new Delta().insert('A')
 		const b = new Delta().insert('AB')

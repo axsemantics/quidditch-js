@@ -1,10 +1,8 @@
 /* global describe, beforeEach, it */
 
 const chai = require('chai')
-const sinon = require('sinon')
-const sinonChai = require('sinon-chai')
 const expect = chai.expect
-chai.use(sinonChai)
+chai.use(require('../delta-string-utils'))
 
 const { Delta, OpIterator } = require('../../dist/quidditch.js')
 
@@ -62,7 +60,7 @@ describe('op iterator', function () {
 	it('next()', function () {
 		const iter = new OpIterator(this.delta.ops)
 		for (let i = 0; i < this.delta.ops.length; i += 1) {
-			expect(iter.next()).to.deep.equal(this.delta.ops[i])
+			expect(iter.next()).to.equalDelta(this.delta.ops[i])
 		}
 		expect(iter.next()).to.deep.equal({ retain: Infinity })
 		expect(iter.next(4)).to.deep.equal({ retain: Infinity })
@@ -71,8 +69,8 @@ describe('op iterator', function () {
 
 	it('next(length)', function () {
 		const iter = new OpIterator(this.delta.ops)
-		expect(iter.next(2)).to.deep.equal({ insert: 'He', attributes: { bold: true } })
-		expect(iter.next(10)).to.deep.equal({ insert: 'llo', attributes: { bold: true } })
+		expect(iter.next(2)).to.equalDelta({ insert: 'He', attributes: { bold: true } })
+		expect(iter.next(10)).to.equalDelta({ insert: 'llo', attributes: { bold: true } })
 		expect(iter.next(1)).to.deep.equal({ retain: 1 })
 		expect(iter.next(2)).to.deep.equal({ retain: 2 })
 	})

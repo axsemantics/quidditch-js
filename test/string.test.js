@@ -3,7 +3,7 @@
 const chai = require('chai')
 const expect = chai.expect
 const { DeltaString } = require('../dist/quidditch.js')
-const { isEqual } = require('./delta-string-utils')
+chai.use(require('./delta-string-utils'))
 // const SIMPLE_EMOJI = '🔥' // has length 1
 // const RAINBOW_FLAG = '🏳️‍🌈' // has length 4 (yes, yes)
 
@@ -15,8 +15,8 @@ describe('DeltaString', () => {
 	it('should equal native string', () => {
 		const string = new DeltaString('my🔥String')
 		expect(string == 'my🔥String') // eslint-disable-line eqeqeq
-		expect(string.equals('my🔥String'))
-		expect(isEqual(string, 'my🔥String'))
+		expect(string).to.equalDelta('my🔥String')
+		expect(string).to.equalDelta('my🔥String')
 	})
 
 	it('should have correct length', () => {
@@ -40,7 +40,7 @@ describe('DeltaString', () => {
 		expect(string1.characterArray.length).to.equal(3)
 		expect(string2.characterArray.length).to.equal(3)
 		expect(result instanceof DeltaString)
-		expect(result.equals('a🔥cd🦊f'))
+		expect(result).to.equalDelta('a🔥cd🦊f')
 		// TODO multiple arguments
 	})
 
@@ -54,7 +54,7 @@ describe('DeltaString', () => {
 	it('should slice', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
 
-		expect(string.slice(5, 9).equals('fox🦊'))
+		expect(string.slice(5, 9)).to.equalDelta('fox🦊')
 		// TODO negatives, inverted params
 		expect(string.characterArray.length).to.equal(20)
 	})
@@ -62,7 +62,7 @@ describe('DeltaString', () => {
 	it('should substring', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
 
-		expect(string.substring(5, 9).equals('fox🦊'))
+		expect(string.substring(5, 9)).to.equalDelta('fox🦊')
 		// TODO negatives, inverted params
 		expect(string.characterArray.length).to.equal(20)
 	})
@@ -70,7 +70,8 @@ describe('DeltaString', () => {
 	it('should substr', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
 
-		expect(string.substr(5, 4).equals('fox🦊'))
+		expect(string.substr(5, 4)).to.equalDelta('fox🦊')
+		expect(string.substr(0, 8)).to.equalDelta('fire🔥fox')
 		// TODO negatives
 		expect(string.characterArray.length).to.equal(20)
 	})

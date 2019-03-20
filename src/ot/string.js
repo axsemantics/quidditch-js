@@ -59,7 +59,7 @@ export default class DeltaString {
 		if (length < 0) {
 			length = 0
 		}
-		if (length !== undefined) {
+		if (length !== undefined && start !== 0) {
 			length = Math.sign(start) * (Math.abs(start) + length)
 		}
 		return this.slice(start, length)
@@ -70,6 +70,10 @@ export default class DeltaString {
 	}
 
 	toString () {
+		return this.nativeString
+	}
+
+	toJSON () {
 		return this.nativeString
 	}
 

@@ -1,6 +1,7 @@
 /* global WebSocket */
 import EventEmitter from 'events'
 import Delta from './ot/delta.js'
+import DeltaString from './ot/string.js'
 import OpIterator from './ot/op-iterator.js'
 import { SUBTYPES, setSubtypes, BASE_TYPES } from './ot/subtypes.js'
 
@@ -295,4 +296,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES }
+export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES }

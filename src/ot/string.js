@@ -21,8 +21,32 @@ export default class DeltaString {
 	// extensions
 
 	// computes the correct DeltaString index from a native index
-	transformIndex (nativeIndex) {
-		throw new Error('NOT IMPLEMENTED')
+	transformFromNativeIndex (nativeIndex) {
+		let index = 0
+		for (const char of this.characterArray) {
+			if (nativeIndex <= 0) return index
+			nativeIndex -= char.length
+			index++
+		}
+		return index
+	}
+
+	// computes the correct native index from a deltastring index
+	transformToNativeIndex (index) {
+		let nativeIndex = 0
+		for (let i = 0; i < index && i < this.characterArray.length; i++) {
+			nativeIndex += this.characterArray[i].length
+		}
+		return nativeIndex
+	}
+
+	// works like Array.splice, but clones
+	// TODO tests
+	splice () {
+		// TODO better performance?
+		const clone = this.characterArray.slice()
+		clone.splice(...arguments)
+		return new DeltaString(clone)
 	}
 
 	// standard methods

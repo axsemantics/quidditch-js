@@ -53,7 +53,6 @@ describe('DeltaString', () => {
 
 	it('should slice', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
-
 		expect(string.slice(5, 9)).to.equalDelta('fox🦊')
 		// TODO negatives, inverted params
 		expect(string.characterArray.length).to.equal(20)
@@ -61,7 +60,6 @@ describe('DeltaString', () => {
 
 	it('should substring', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
-
 		expect(string.substring(5, 9)).to.equalDelta('fox🦊')
 		// TODO negatives, inverted params
 		expect(string.characterArray.length).to.equal(20)
@@ -69,10 +67,29 @@ describe('DeltaString', () => {
 
 	it('should substr', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
-
 		expect(string.substr(5, 4)).to.equalDelta('fox🦊')
 		expect(string.substr(0, 8)).to.equalDelta('fire🔥fox')
 		// TODO negatives
 		expect(string.characterArray.length).to.equal(20)
+	})
+
+	it('should transformFromNativeIndex', () => {
+		const string = new DeltaString('a🔥cd🦊f')
+		expect(string.transformFromNativeIndex(0)).to.equal(0)
+		expect(string.transformFromNativeIndex(1)).to.equal(1)
+		expect(string.transformFromNativeIndex(2)).to.equal(2)
+		expect(string.transformFromNativeIndex(3)).to.equal(2)
+		expect(string.transformFromNativeIndex(4)).to.equal(3)
+		expect(string.transformFromNativeIndex(8)).to.equal(6)
+	})
+
+	it('should transformToNativeIndex', () => {
+		const string = new DeltaString('a🔥cd🦊f')
+		expect(string.transformToNativeIndex(0)).to.equal(0)
+		expect(string.transformToNativeIndex(1)).to.equal(1)
+		expect(string.transformToNativeIndex(2)).to.equal(3)
+		expect(string.transformToNativeIndex(3)).to.equal(4)
+		expect(string.transformToNativeIndex(4)).to.equal(5)
+		expect(string.transformToNativeIndex(6)).to.equal(8)
 	})
 })

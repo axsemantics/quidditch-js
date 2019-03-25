@@ -74,8 +74,8 @@ export default class DeltaString {
 	}
 
 	substring (indexStart, indexEnd) {
-		indexStart = Math.max(0, Math.min(this.length, indexStart))
-		indexEnd = Math.max(0, Math.min(this.length, indexEnd))
+		indexStart = Math.max(0, Math.min(this.length, indexStart || 0))
+		indexEnd = Math.max(0, Math.min(this.length, indexEnd || this.length))
 		return indexStart <= indexEnd ? this.slice(indexStart, indexEnd) : this.slice(indexEnd, indexStart)
 	}
 

@@ -102,7 +102,7 @@ export default class DeltaString {
 	}
 
 	equals (other) {
-		return this == other // eslint-disable-line eqeqeq
+		return this.valueOf() == other // eslint-disable-line eqeqeq
 	}
 
 	// charAt

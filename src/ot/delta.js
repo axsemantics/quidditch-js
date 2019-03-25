@@ -223,7 +223,7 @@ export default class Delta {
 		const strings = [this, otherDelta].map(function (delta) {
 			return delta.map(function (op) {
 				if (op.insert != null) {
-					return typeof op.insert === 'string' ? op.insert : NULL_CHARACTER
+					return op.insert instanceof DeltaString ? op.insert.toString() : NULL_CHARACTER
 				}
 				const prep = (delta === otherDelta) ? 'on' : 'with'
 				throw new Error('diff() called ' + prep + ' non-document')

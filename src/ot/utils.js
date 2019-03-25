@@ -6,6 +6,9 @@ import DeltaString from './string'
 import { SUBTYPES, BASE_TYPES } from './subtypes'
 
 const deltaStringEqualCustomizer = function (a, b) {
+	if (a instanceof DeltaString && b instanceof DeltaString) {
+		return a.equals(b)
+	}
 	if (a instanceof DeltaString || b instanceof DeltaString) {
 		return a == b // eslint-disable-line eqeqeq
 	}

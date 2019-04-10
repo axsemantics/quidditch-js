@@ -46,8 +46,8 @@ export function convertOps (ops) {
 			return op
 		}
 
-		if (op.retain?.$sub) {
-			convertOps(op.retain.$sub)
+		if (op.$sub?.items) {
+			convertOps(op.$sub.items)
 			return op
 		}
 

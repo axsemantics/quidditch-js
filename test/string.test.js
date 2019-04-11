@@ -10,6 +10,9 @@ chai.use(require('./delta-string-utils'))
 describe('DeltaString', () => {
 	it('should construct', () => {
 		new DeltaString('myString') // eslint-disable-line no-new
+		const nested = new DeltaString(new DeltaString('myString'))
+		expect(nested.toString()).to.equal('myString')
+		expect(nested.characterArray.length).to.equal(8)
 	})
 
 	it('should equal native string', () => {

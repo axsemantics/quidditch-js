@@ -10,6 +10,9 @@ export default class DeltaString {
 		if (nativeString instanceof Array) {
 			characterArray = nativeString
 			nativeString = characterArray.join('')
+		} if (nativeString instanceof DeltaString) {
+			characterArray = Array.from(nativeString.characterArray)
+			nativeString = nativeString.toString()
 		} else {
 			characterArray = Array.from(nativeString)
 		}

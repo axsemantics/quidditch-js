@@ -237,7 +237,7 @@ class QuidditchClient extends EventEmitter {
 		if (req === null || req === undefined) {
 			this.emit('error', message[message.length - 1])
 		} else {
-			req.deferred.reject(message[2])
+			req.deferred.reject(new Error(message[2].error || message[2].message) || message[2])
 		}
 	}
 

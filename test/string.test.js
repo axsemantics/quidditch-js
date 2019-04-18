@@ -35,6 +35,13 @@ describe('DeltaString', () => {
 		expect(iter.next().value).to.equal('c')
 	})
 
+	it('should allow [] access', () => {
+		const string = new DeltaString('a🔥c')
+		expect(string[0]).to.equal('a')
+		expect(string[1]).to.equal('🔥')
+		expect(string[2]).to.equal('c')
+	})
+
 	it('should concat', () => {
 		const string1 = new DeltaString('a🔥c')
 		const string2 = new DeltaString('d🦊f')

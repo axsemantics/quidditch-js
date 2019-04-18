@@ -16,9 +16,19 @@ export default class DeltaString {
 		} else {
 			characterArray = Array.from(nativeString)
 		}
-		Object.defineProperty(this, 'nativeString', {value: nativeString})
-		Object.defineProperty(this, 'characterArray', {value: characterArray})
-		Object.defineProperty(this, 'length', {value: characterArray.length})
+		Object.defineProperties(this, {
+			nativeString: {value: nativeString},
+			characterArray: {value: characterArray},
+			length: {value: characterArray.length}
+		})
+		return new Proxy(this, {
+			get (target, prop, receiver) {
+				if (typeof prop === 'string' && Number.isInteger(Number(prop))) {
+					return target.characterArray[prop]
+				}
+				return Reflect.get(...arguments)
+			}
+		})
 	}
 
 	// extensions

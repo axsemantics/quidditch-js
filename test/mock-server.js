@@ -91,7 +91,7 @@ const mock = {
 		expect(message[2]).to.contain.all.keys('number')
 		let response
 		if (message[2].number === null) {
-			response = ['error', message[1], 'NOT A NUMBER!']
+			response = ['error', message[1], {message: 'NOT A NUMBER!'}]
 		} else {
 			response = ['success', message[1], {
 				number: ++message[2].number
@@ -106,7 +106,7 @@ const mock = {
 		const channel = message[2]
 		let response
 		if (message[3].delta[0].insert === 'trash') {
-			response = ['error', message[1], 'trashy request']
+			response = ['error', message[1], {message: 'trashy request'}]
 		} else {
 			let rev = (mock.otChannels[channel] || 0) + 1
 			mock.otChannels[channel] = rev

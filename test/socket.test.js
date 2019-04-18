@@ -68,7 +68,7 @@ describe('Quidditch Client', () => {
 		client.call('generic:increment', {number: null}).then(() => {
 			done('should not succeed')
 		}).catch((error) => {
-			expect(error).to.equal('NOT A NUMBER!')
+			expect(error.message).to.equal('NOT A NUMBER!')
 			done()
 		})
 	})
@@ -92,7 +92,7 @@ describe('Quidditch Client', () => {
 		client.sendDelta(channel, new Delta([{insert: 'trash'}])).then(() => {
 			done('should not succeed')
 		}).catch((error) => {
-			expect(error).to.equal('trashy request')
+			expect(error.message).to.equal('trashy request')
 			done()
 		})
 	})

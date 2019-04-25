@@ -1,6 +1,6 @@
 {
   "name": "quidditch",
-  "version": "3.4.1",
+  "version": "5.1.0",
   "description": "Quidditch Client for the Browser",
   "main": "dist/quidditch.js",
   "jsnext:main": "dist/quidditch.es.js",
@@ -35,6 +35,7 @@
   "dependencies": {
     "deep-equal": "^1.0.1",
     "fast-diff": "^1.2.0",
+    "lodash": "^4.17.11",
     "ws": "^6.1.0"
   },
   "devDependencies": {
@@ -59,6 +60,7 @@
     "eslint-plugin-standard": "^4.0.0",
     "mocha": "^5.2.0",
     "mocha-lcov-reporter": "^1.3.0",
+    "nodemon": "^1.18.10",
     "nyc": "^13.1.0",
     "rollup": "^0.66.6",
     "rollup-plugin-babel": "^4.0.3",

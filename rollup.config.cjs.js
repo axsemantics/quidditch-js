@@ -10,5 +10,5 @@ export default {
 		include: 'src/index.js',
 		WebSocket: 'ws'
 	})],
-	external: ['ws', 'events', 'fast-diff', 'deep-equal']
+	external: ['ws', 'events', 'fast-diff', 'lodash/cloneDeep', 'lodash/isEqual', 'lodash/cloneDeepWith', 'lodash/isEqualWith']
 }

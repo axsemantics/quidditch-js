@@ -3,8 +3,9 @@
 
 const chai = require('chai')
 const expect = chai.expect
-
+chai.use(require('../delta-string-utils'))
 const { Delta } = require('../../dist/quidditch.js')
+const fixtures = require('./fixtures')
 
 describe('Delta', function () {
 	const ops = [
@@ -51,13 +52,13 @@ describe('insert()', function () {
 	it('insert(text)', function () {
 		const delta = new Delta().insert('test')
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
 	})
 
 	it('insert(text, null)', function () {
 		const delta = new Delta().insert('test', null)
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
 	})
 
 	// it('insert(embed)', function () {
@@ -73,42 +74,51 @@ describe('insert()', function () {
 	// 	expect(delta.ops[0]).to.deep.equal({ insert: 1, attributes: obj })
 	// })
 	//
-	// it('insert(embed) non-integer', function () {
-	// 	const embed = { url: 'http://quilljs.com' }
-	// 	const attr = { alt: 'Quill' }
-	// 	const delta = new Delta().insert(embed, attr)
-	// 	expect(delta.ops.length).to.equal(1)
-	// 	expect(delta.ops[0]).to.deep.equal({ insert: embed, attributes: attr })
-	// })
+	it('insert object', function () {
+		const object = { t: 'container' }
+		const attr = { alt: 'Quill' }
+		const delta = new Delta().insert(object, attr)
+		expect(delta.ops.length).to.equal(1)
+		expect(delta.ops[0]).to.equalDelta({ insert: object, attributes: attr })
+	})
+
+	it('insert objects', function () {
+		const delta = new Delta()
+			.insert('abc')
+			.insert({_t: 'container'})
+			.insert({_t: 'case'})
+			.insert('def')
+		expect(delta.ops).to.equalDelta(fixtures.flatObjectsOps())
+	})
 
 	it('insert(text, attributes)', function () {
 		const delta = new Delta().insert('test', { bold: true })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'test', attributes: { bold: true } })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test', attributes: { bold: true } })
 	})
 
 	it('insert(text) after delete', function () {
 		const delta = new Delta().delete(1).insert('a')
 		const expected = new Delta().insert('a').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text) after delete with merge', function () {
 		const delta = new Delta().insert('a').delete(1).insert('b')
 		const expected = new Delta().insert('ab').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text) after delete no merge', function () {
 		const delta = new Delta().insert(1).delete(1).insert('a')
 		const expected = new Delta().insert(1).insert('a').delete(1)
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 
 	it('insert(text, {})', function () {
 		const delta = new Delta().insert('a', {})
 		const expected = new Delta().insert('a')
-		expect(delta).to.deep.equal(expected)
+		expect(delta).to.equalDelta(expected)
 	})
 })
 
@@ -143,16 +153,37 @@ describe('retain()', function () {
 		expect(delta.ops[0]).to.deep.equal({ retain: 2 })
 	})
 
-	it('retain(length, attributes)', function () {
-		const delta = new Delta().retain(1, { bold: true })
-		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ retain: 1, attributes: { bold: true } })
-	})
-
 	it('retain(length, {})', function () {
 		const delta = new Delta().retain(2, {}).delete(1) // Delete prevents chop
 		const expected = new Delta().retain(2).delete(1)
 		expect(delta).to.deep.equal(expected)
+	})
+
+	it('retain(length, {attributes})', function () {
+		const delta = new Delta().retain(1, {attributes: { bold: true }})
+		expect(delta.ops.length).to.equal(1)
+		expect(delta.ops[0]).to.deep.equal({ retain: 1, attributes: { bold: true } })
+	})
+
+	it('retain(length, {attributes: {}})', function () {
+		const delta = new Delta().retain(2, {attributes: {}}).delete(1) // Delete prevents chop
+		const expected = new Delta().retain(2).delete(1)
+		expect(delta).to.deep.equal(expected)
+	})
+
+	it('retain(length, {subOps: Delta})', function () {
+		const delta = new Delta().delete(2).retain(1, {subOps: new Delta().insert({'container': {}})})
+		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $sub: [{insert: {container: {}}}]}])
+	})
+
+	it('retain(length, {subOps: [ops]})', function () {
+		const delta = new Delta().delete(2).retain(1, {subOps: [{insert: {_t: 'container'}}]})
+		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $sub: [{insert: {_t: 'container'}}]}])
+	})
+
+	it('retain(length, {set})', function () {
+		const delta = new Delta().delete(2).retain(1, {set: {_t: 'container'}})
+		expect(delta.ops).to.deep.equal([{delete: 2}, {retain: 1, $set: {_t: 'container'}}])
 	})
 })
 
@@ -174,18 +205,18 @@ describe('push()', function () {
 		const delta = new Delta().insert('a')
 		delta.push({ insert: 'b' })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'ab' })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'ab' })
 	})
 
 	it('push(op) consecutive texts with matching attributes', function () {
 		const delta = new Delta().insert('a', { bold: true })
 		delta.push({ insert: 'b', attributes: { bold: true } })
 		expect(delta.ops.length).to.equal(1)
-		expect(delta.ops[0]).to.deep.equal({ insert: 'ab', attributes: { bold: true } })
+		expect(delta.ops[0]).to.equalDelta({ insert: 'ab', attributes: { bold: true } })
 	})
 
 	it('push(op) consecutive retains with matching attributes', function () {
-		const delta = new Delta().retain(1, { bold: true })
+		const delta = new Delta().retain(1, {attributes: { bold: true }})
 		delta.push({ retain: 3, attributes: { bold: true } })
 		expect(delta.ops.length).to.equal(1)
 		expect(delta.ops[0]).to.deep.equal({ retain: 4, attributes: { bold: true } })
@@ -198,8 +229,44 @@ describe('push()', function () {
 	})
 
 	it('push(op) consecutive retains with mismatched attributes', function () {
-		const delta = new Delta().retain(1, { bold: true })
+		const delta = new Delta().retain(1, {attributes: { bold: true }})
 		delta.push({ retain: 3 })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with new $sub', function () {
+		const delta = new Delta().retain(1)
+		delta.push({ retain: 1, $sub: [] })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with matching $subs', function () {
+		const delta = new Delta().retain(1, {subOps: [{insert: 'a'}]})
+		delta.push({ retain: 1, $sub: [{insert: 'a'}] })
+		expect(delta.ops.length).to.equal(1)
+	})
+
+	it('push(op) consecutive retains with mismatched $subs', function () {
+		const delta = new Delta().retain(1, {subOps: [{insert: 'a'}]})
+		delta.push({ retain: 1, $sub: [{insert: 'b'}] })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with new $set', function () {
+		const delta = new Delta().retain(1)
+		delta.push({ retain: 1, $set: {} })
+		expect(delta.ops.length).to.equal(2)
+	})
+
+	it('push(op) consecutive retains with matching $subs', function () {
+		const delta = new Delta().retain(1, {set: {a: 3}})
+		delta.push({ retain: 1, $set: {a: 3} })
+		expect(delta.ops.length).to.equal(1)
+	})
+
+	it('push(op) consecutive retains with mismatched $subs', function () {
+		const delta = new Delta().retain(1, {set: {a: 3}})
+		delta.push({ retain: 1, $set: {b: 4} })
 		expect(delta.ops.length).to.equal(2)
 	})
 

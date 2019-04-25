@@ -1,9 +1,8 @@
 /* global describe, before, after, it */
 
 const chai = require('chai')
-const sinonChai = require('sinon-chai')
 const expect = chai.expect
-chai.use(sinonChai)
+chai.use(require('./delta-string-utils'))
 
 const server = require('./mock-server')
 const { QuidditchClient, Delta } = require('../dist/quidditch.js')
@@ -97,7 +96,7 @@ describe('Quidditch Client', () => {
 			})
 		}
 		count()
-	}).timeout(2000)
+	}).timeout(1500)
 
 	it('should receive generic broadcast', (done) => {
 		client.once('message', (message) => {
@@ -120,7 +119,7 @@ describe('Quidditch Client', () => {
 		client.call('generic:increment', {number: null}).then(() => {
 			done('should not succeed')
 		}).catch((error) => {
-			expect(error).to.equal('NOT A NUMBER!')
+			expect(error.message).to.equal('NOT A NUMBER!')
 			done()
 		})
 	})
@@ -144,7 +143,7 @@ describe('Quidditch Client', () => {
 		client.sendDelta(channel, new Delta([{insert: 'trash'}])).then(() => {
 			done('should not succeed')
 		}).catch((error) => {
-			expect(error).to.equal('trashy request')
+			expect(error.message).to.equal('trashy request')
 			done()
 		})
 	})
@@ -165,7 +164,7 @@ describe('Quidditch Client', () => {
 		server.broadcastDelta(channel, delta)
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
-			expect(returnDelta).to.deep.equal(delta)
+			expect(returnDelta).to.equalDelta(delta)
 			done()
 		})
 	})
@@ -176,7 +175,7 @@ describe('Quidditch Client', () => {
 		server.broadcastDelta(channel, delta)
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
-			expect(returnDelta).to.deep.equal(delta)
+			expect(returnDelta).to.equalDelta(delta)
 			done()
 		})
 	})
@@ -189,7 +188,7 @@ describe('Quidditch Client', () => {
 		const sendFullfilled = client.sendDelta(channel, deltaInFlight)
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
-			expect(returnDelta).to.deep.equal(deltaInFlight.transform(sendingDelta))
+			expect(returnDelta).to.equalDelta(deltaInFlight.transform(sendingDelta))
 			sendFullfilled.then(() => done())
 		})
 	})
@@ -209,7 +208,7 @@ describe('Quidditch Client', () => {
 		])
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
-			expect(returnDelta).to.deep.equal(bufferDelta.transform(sendingDelta))
+			expect(returnDelta).to.equalDelta(bufferDelta.transform(sendingDelta))
 			sendFullfilled.then(() => done())
 		})
 	})
@@ -229,7 +228,7 @@ describe('Quidditch Client', () => {
 		])
 		client.once('ot:delta', (returnChannel, returnDelta) => {
 			expect(returnChannel).to.equal(channel)
-			expect(returnDelta).to.deep.equal(bufferDelta.transform(sendingDelta))
+			expect(returnDelta).to.equalDelta(bufferDelta.transform(sendingDelta))
 			sendFullfilled.then(() => {
 				done('should not succeed')
 			}).catch(() => done())
@@ -270,8 +269,8 @@ describe('Quidditch Client', () => {
 		server.drop = true
 		let promiseRejected = false
 		let channelsReset = false
-		const promise1 = client.sendDelta('test', new Delta([{insert: 'Hello World'}])).catch(() => {})
-		const promise2 = client.sendDelta('test', new Delta([{retain: 1}])).catch((e) => {
+		client.sendDelta('test', new Delta([{insert: 'Hello World'}])).catch(() => {})
+		client.sendDelta('test', new Delta([{retain: 1}])).catch((e) => {
 			promiseRejected = true
 			if (channelsReset && promiseRejected)
 				done()

@@ -1,7 +1,10 @@
 /* global WebSocket */
 import EventEmitter from 'events'
 import Delta from './ot/delta.js'
+import DeltaString from './ot/string.js'
 import OpIterator from './ot/op-iterator.js'
+import { SUBTYPES, setSubtypes, BASE_TYPES } from './ot/subtypes.js'
+import { clone } from './ot/utils'
 
 const defer = function () {
 	const deferred = {}
@@ -39,7 +42,7 @@ class QuidditchClient extends EventEmitter {
 		}
 		Object.assign(options, opts)
 
-		const {id, promise} = this._createRequest()
+		const { id, promise } = this._createRequest()
 		const payload = [
 			name,
 			id,
@@ -65,7 +68,7 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 
-		const handleAck = function ({rev}) {
+		const handleAck = function ({ rev }) {
 			channel.deltaInFlight = null
 			channel.rev = rev
 
@@ -86,7 +89,7 @@ class QuidditchClient extends EventEmitter {
 		}
 
 		const sendDelta = (deltaToSend) => {
-			const {id, promise} = this._createRequest()
+			const { id, promise } = this._createRequest()
 			channel.deltaInFlight = deltaToSend
 			const payload = ['ot:delta', id, channelName, {
 				delta: deltaToSend.ops,
@@ -164,7 +167,7 @@ class QuidditchClient extends EventEmitter {
 	_authenticate () {
 		const payload = [
 			'auth',
-			{token: this._config.token}
+			{ token: this._config.token }
 		]
 		this._send(JSON.stringify(payload))
 	}
@@ -218,8 +221,8 @@ class QuidditchClient extends EventEmitter {
 	_createRequest (args) {
 		const id = this._nextRequestIndex++
 		const deferred = defer()
-		this._openRequests[id] = {deferred, args}
-		return {id, promise: deferred.promise}
+		this._openRequests[id] = { deferred, args }
+		return { id, promise: deferred.promise }
 	}
 
 	_closeChannel (channelName) {
@@ -243,7 +246,7 @@ class QuidditchClient extends EventEmitter {
 		if (req === null || req === undefined) {
 			this.emit('error', message[message.length - 1])
 		} else {
-			req.deferred.reject(message[2])
+			req.deferred.reject(new Error(message[2].error || message[2].message) || message[2])
 		}
 	}
 
@@ -321,4 +324,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, QuidditchClient, OpIterator }
+export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES, clone as cloneOps }

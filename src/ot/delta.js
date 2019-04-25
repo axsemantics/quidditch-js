@@ -1,13 +1,25 @@
 // lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
 import diff from 'fast-diff'
-import equal from 'deep-equal'
-import { getOpLength, attributeOperations } from './utils'
+import { getOpLength, attributeOperations, convertOps, isEqual, clone } from './utils'
 import Iterator from './op-iterator'
+import DeltaString from './string'
+import { SUBTYPES, BASE_TYPES } from './subtypes'
 
 const NULL_CHARACTER = String.fromCharCode(0) // Placeholder char for embed in diff()
 
+const composeOplist = function (a, b) {
+	if (a && b) {
+		return new Delta(a).compose(new Delta(b)).ops
+	} else if (a) {
+		return clone(a)
+	} else if (b) {
+		return clone(b)
+	}
+}
+
 export default class Delta {
 	constructor (ops = []) {
+		convertOps(ops)
 		this.ops = ops
 	}
 
@@ -27,11 +39,23 @@ export default class Delta {
 		return this.push(op)
 	}
 
-	retain (length, attributes) {
+	retain (length, args) {
+		const {attributes, subOps, set} = args ?? {}
 		if (length <= 0) return this
 		const op = { retain: length }
 		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
 			op.attributes = attributes
+		}
+		if (set != null && typeof set === 'object' && Object.keys(set).length > 0) {
+			op.$set = set
+		}
+		// subOps can be Delta, object, or array
+		if (subOps != null && (typeof subOps === 'object' && Object.keys(subOps).length > 0)) {
+			if (subOps instanceof Delta) {
+				op.$sub = subOps.ops
+			} else {
+				op.$sub = subOps
+			}
 		}
 		return this.push(op)
 	}
@@ -39,7 +63,7 @@ export default class Delta {
 	push (newOp) {
 		let index = this.ops.length
 		let lastOp = this.ops[index - 1]
-
+		convertOps(newOp)
 		// patch lastOp if we can
 		if (typeof lastOp === 'object') {
 			if (newOp.delete && lastOp.delete) {
@@ -58,16 +82,21 @@ export default class Delta {
 				}
 			}
 
-			if (equal(newOp.attributes, lastOp.attributes)) {
-				if (typeof newOp.insert === 'string' && typeof lastOp.insert === 'string') {
-					this.ops[index - 1] = { insert: lastOp.insert + newOp.insert }
+			if (isEqual(newOp.attributes, lastOp.attributes)) {
+				if (newOp.insert instanceof DeltaString && lastOp.insert instanceof DeltaString) {
+					this.ops[index - 1] = { insert: lastOp.insert.concat(newOp.insert) }
 					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
 					return this
 				}
 
-				if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number') {
+				if (typeof newOp.retain === 'number' && typeof lastOp.retain === 'number' &&
+					isEqual(newOp.$sub, lastOp.$sub) &&
+					isEqual(newOp.$set, lastOp.$set)
+				) {
 					this.ops[index - 1] = { retain: lastOp.retain + newOp.retain }
 					if (newOp.attributes) this.ops[index - 1].attributes = newOp.attributes
+					if (newOp.$sub) this.ops[index - 1].$sub = newOp.$sub
+					if (newOp.$set) this.ops[index - 1].$set = newOp.$set
 					return this
 				}
 			}
@@ -97,13 +126,12 @@ export default class Delta {
 
 		// retain the remaining string
 		newString.push(source.slice(sourceIndex))
-
 		return newString.join('')
 	}
 
 	chop () {
 		const lastOp = this.ops[this.ops.length - 1]
-		if (lastOp && lastOp.retain && !lastOp.attributes) {
+		if (lastOp && lastOp.retain && !lastOp.attributes && !lastOp.$sub && !lastOp.$set) {
 			this.ops.pop()
 		}
 		return this
@@ -121,7 +149,6 @@ export default class Delta {
 		const thisIter = new Iterator(this.ops)
 		const otherIter = new Iterator(otherDelta.ops)
 		const newDelta = new Delta()
-
 		while (thisIter.hasNext() || otherIter.hasNext()) {
 			if (otherIter.peekType() === 'insert') { // new insert always gets used
 				newDelta.push(otherIter.next())
@@ -135,8 +162,42 @@ export default class Delta {
 					const newOp = {}
 					if (typeof thisOp.retain === 'number') { // if both retain, also retain
 						newOp.retain = length
+						if (thisOp.$set || otherOp.$set) {
+							newOp.$set = attributeOperations.compose(thisOp.$set, otherOp.$set, true)
+						}
+						if (thisOp.$sub && otherOp.$sub) {
+							const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+							const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+							const newSubs = Object.assign({}, thisSubs)
+							for (const [key, value] of Object.entries(otherSubs)) {
+								newSubs[key] = composeOplist(thisSubs[key], value)
+							}
+							newOp.$sub = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+						} else if (thisOp.$sub || otherOp.$sub) {
+							newOp.$sub = composeOplist(thisOp.$sub, otherOp.$sub)
+						}
 					} else {
-						newOp.insert = thisOp.insert // old insert overrides new retain
+						if (thisOp.insert instanceof DeltaString || (!otherOp.$sub && !otherOp.$set)) {
+							newOp.insert = thisOp.insert // old insert overrides new retain
+						} else {
+							const typeMark = thisOp.insert._t
+							if (!SUBTYPES[typeMark]) throw new TypeError(`Invalid item type ${typeMark}`)
+							const typeSpec = SUBTYPES[typeMark]
+							// TODO typechecking
+							newOp.insert = attributeOperations.compose(thisOp.insert, otherOp.$set, false)
+							if (otherOp.$sub) {
+								const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+								for (const [key, value] of Object.entries(otherSubs)) {
+									if (typeSpec[key] === BASE_TYPES.DELTA_STR) {
+										newOp.insert[key] = new DeltaString(new Delta(value).apply(thisOp.insert[key] || ''))
+									} else if (typeSpec[key] === BASE_TYPES.DELTA) {
+										newOp.insert[key] = composeOplist(thisOp.insert[key], value)
+									} else {
+										throw new TypeError(` ${typeMark}.${key} is not a delta`)
+									}
+								}
+							}
+						}
 					}
 					// Preserve null when composing with a retain, otherwise remove it for inserts
 					const attributes = attributeOperations.compose(thisOp.attributes, otherOp.attributes, typeof thisOp.retain === 'number')
@@ -162,7 +223,7 @@ export default class Delta {
 		const strings = [this, otherDelta].map(function (delta) {
 			return delta.map(function (op) {
 				if (op.insert != null) {
-					return typeof op.insert === 'string' ? op.insert : NULL_CHARACTER
+					return op.insert instanceof DeltaString ? op.insert.toString() : NULL_CHARACTER
 				}
 				const prep = (delta === otherDelta) ? 'on' : 'with'
 				throw new Error('diff() called ' + prep + ' non-document')
@@ -190,8 +251,8 @@ export default class Delta {
 						opLength = Math.min(thisIter.peekLength(), otherIter.peekLength(), length)
 						const thisOp = thisIter.next(opLength)
 						const otherOp = otherIter.next(opLength)
-						if (equal(thisOp.insert, otherOp.insert)) {
-							newDelta.retain(opLength, attributeOperations.diff(thisOp.attributes, otherOp.attributes))
+						if (isEqual(thisOp.insert, otherOp.insert)) {
+							newDelta.retain(opLength, {attributes: attributeOperations.diff(thisOp.attributes, otherOp.attributes)})
 						} else {
 							newDelta.push(otherOp)['delete'](opLength)
 						}
@@ -228,7 +289,27 @@ export default class Delta {
 					newDelta.push(otherOp)
 				} else {
 					// We retain either their retain or insert
-					newDelta.retain(length, attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority))
+					let newSubs
+					if (thisOp.$sub && otherOp.$sub) {
+						const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+						const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+						newSubs = {}
+						for (const [key, value] of Object.entries(otherSubs)) {
+							if (thisSubs[key]) {
+								newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), hasPriority).ops
+							} else {
+								newSubs[key] = clone(value)
+							}
+						}
+						newSubs = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+					} else if (otherOp.$sub) {
+						newSubs = clone(otherOp.$sub)
+					}
+					newDelta.retain(length, {
+						attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority),
+						set: attributeOperations.transform(thisOp.$set, otherOp.$set, hasPriority),
+						subOps: newSubs
+					})
 				}
 			}
 		}

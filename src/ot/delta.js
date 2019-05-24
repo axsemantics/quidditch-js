@@ -176,6 +176,9 @@ export default class Delta {
 						} else if (thisOp.$sub || otherOp.$sub) {
 							newOp.$sub = composeOplist(thisOp.$sub, otherOp.$sub)
 						}
+						if (newOp.$sub && !Object.keys(newOp.$sub).length) {
+							delete newOp.$sub
+						}
 					} else {
 						if (thisOp.insert instanceof DeltaString || (!otherOp.$sub && !otherOp.$set)) {
 							newOp.insert = thisOp.insert // old insert overrides new retain

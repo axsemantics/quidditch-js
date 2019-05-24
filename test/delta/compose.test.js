@@ -283,6 +283,12 @@ describe('Delta.compose()', () => {
 		expect(a.compose(b)).to.equalDelta(expected)
 	})
 
+	it('should compose empty $sub', function () {
+    const a = new Delta([{retain: 1, $sub: []}])
+    const b = new Delta([{retain: 2}, {insert: {_t: 'case', items: []}}])
+    expect(a.compose(b)).to.equalDelta(b)
+	})
+
 	// do we need type checks in the frontend?
 	// [
 	// 	[{insert: null}, 'must be string or object'],

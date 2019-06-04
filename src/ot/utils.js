@@ -51,6 +51,11 @@ export function convertOps (ops) {
 			return op
 		}
 
+		if (op.$sub) {
+			convertOps(op.$sub)
+			return op
+		}
+
 		const typeSpec = SUBTYPES[op.insert?._t]
 		if (typeSpec) {
 			for (const [key, value] of Object.entries(op.insert)) {

@@ -44,4 +44,25 @@ describe('DeltaString', () => {
 		expect(delta.ops[1].insert.items[0].insert).to.be.an.instanceof(DeltaString)
 		expect(delta.ops[2].$sub.items[0].insert).to.be.an.instanceof(DeltaString)
 	})
+
+	it('should convert all plain strings to DeltaString with retains', () => {
+		const delta = new Delta([
+			{
+				retain: 3
+			}, {
+				retain: 1,
+				$sub: [{
+					retain: 2
+				}, {
+					retain: 1,
+					$sub: [{
+						retain: 7
+					}, {
+						insert: 'bar'
+					}]
+				}]
+			}
+		])
+		expect(delta.ops[1].$sub[1].$sub[1].insert).to.be.an.instanceof(DeltaString)
+	})
 })

@@ -38,7 +38,7 @@ class QuidditchClient extends EventEmitter {
 
 	call (name, data, opts) {
 		const options = {
-			timeout: 2000
+			timeout: 5000
 		}
 		Object.assign(options, opts)
 

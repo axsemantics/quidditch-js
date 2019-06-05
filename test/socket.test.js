@@ -243,7 +243,7 @@ describe('Quidditch Client', () => {
 
 	it('should error on unknown message id (success)', (done) => {
 		client.removeAllListeners('error')
-		client.once('error', () => done())
+		client.once('warning', () => done())
 		server.sendTrashSuccess()
 	})
 

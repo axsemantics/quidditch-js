@@ -235,6 +235,22 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should close channels by prefix', (done) => {
+		const client = new QuidditchClient(WS_URL, {token: 'hunter2'})
+		client.once('joined', () => {
+			return Promise.all([
+				client.sendDelta('test:1:foo', new Delta().insert('a')),
+				client.sendDelta('test:1:bar', new Delta().insert('b')),
+				client.sendDelta('test:2:foo', new Delta().insert('c'))
+			]).then(() => {
+				client.closeChannels('test:1')
+				expect(Object.keys(client._otChannels)).to.deep.equal(['initalChannel', 'test:2:foo'])
+				client.close()
+				setTimeout(done, 1)
+			})
+		})
+	})
+
 	// it('should not accept random acks', (done) => {
 	// 	client.removeAllListeners('error')
 	// 	client.once('error', () => done())

@@ -117,6 +117,12 @@ class QuidditchClient extends EventEmitter {
 		}
 	}
 
+	closeChannels (prefix) {
+		for (const channelName of Object.keys(this._otChannels)) {
+			if (channelName.startsWith(prefix)) this._closeChannel(channelName)
+		}
+	}
+
 	// ===========================================================================
 	// INTERNALS
 	// ===========================================================================

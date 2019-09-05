@@ -320,6 +320,36 @@ export default class Delta {
 		return newDelta.chop()
 	}
 
+	transformPosition (path, ops = this.ops) {
+		if (!path.length) return path
+		const iter = new Iterator(ops)
+		let offset = 0
+		let index = path[0]
+		while (iter.hasNext() && offset <= index) {
+			const type = iter.peekType()
+			const hasSub = type === 'retain' && iter.peek().$sub
+			const op = iter.next(hasSub ? 1 : Infinity)
+			const length = iter.getOpLength(op)
+			if (type === 'delete') {
+				index -= length
+				if (offset > index) {
+					// passed the original position with a delete. If there are deeper levels, we are booted out
+					path.splice(0, Infinity, Math.max(0, index))
+					return path
+				}
+				continue
+			} else if (type === 'insert') {
+				index += length
+			} else if (type === 'retain' && hasSub && offset === index) {
+				const subOps = op.$sub instanceof Array ? op.$sub : (op.$sub.items || op.$sub.text)
+				if (subOps) path.splice(1, Infinity, ...this.transformPosition(path.slice(1), subOps))
+			}
+			offset += length
+		}
+		path[0] = index
+		return path
+	}
+
 	// plaintext diffing
 	static diff (a, b) {
 		const aDelta = new Delta().insert(a)

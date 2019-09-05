@@ -334,20 +334,18 @@ export default class Delta {
 				index -= length
 				if (offset > index) {
 					// passed the original position with a delete. If there are deeper levels, we are booted out
-					path.splice(0, Infinity, Math.max(0, index))
-					return path
+					return [Math.max(0, index)]
 				}
 				continue
 			} else if (type === 'insert') {
 				index += length
 			} else if (type === 'retain' && hasSub && offset === index) {
 				const subOps = op.$sub instanceof Array ? op.$sub : (op.$sub.items || op.$sub.text)
-				if (subOps) path.splice(1, Infinity, ...this.transformPosition(path.slice(1), subOps))
+				if (subOps) return [index].concat(this.transformPosition(path.slice(1), subOps))
 			}
 			offset += length
 		}
-		path[0] = index
-		return path
+		return [index].concat(path.slice(1))
 	}
 
 	// plaintext diffing

@@ -232,6 +232,7 @@ describe('Delta.transformPosition()', () => {
 		expect(new Delta().insert('a').transformPosition([5])).eql([6])
 		expect(new Delta().retain(4).insert('bcd').transformPosition([5])).eql([8])
 		expect(new Delta().retain(5).insert('bcd').transformPosition([5])).eql([8])
+		expect(new Delta().retain(5).insert('bcd').transformPosition([5], true)).eql([5])
 		expect(new Delta().retain(7).insert('d').transformPosition([5])).eql([5])
 	})
 
@@ -249,5 +250,9 @@ describe('Delta.transformPosition()', () => {
 		const d2 = new Delta().retain(1, {subOps: new Delta().retain(3).retain(1, {subOps: {text: [{delete: 3}]}})})
 		expect(d2.transformPosition([0, 3, 2])).eql([0, 3, 0])
 		expect(d2.transformPosition([0, 3, 5])).eql([0, 3, 2])
+
+		const d3 = new Delta().retain(1, {subOps: new Delta().retain(3).insert('ab')})
+		expect(d3.transformPosition([0, 3, 1], false)).eql([0, 5, 1])
+		expect(d3.transformPosition([0, 3, 1], true)).eql([0, 3, 1])
 	})
 })

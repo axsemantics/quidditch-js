@@ -320,7 +320,7 @@ export default class Delta {
 		return newDelta.chop()
 	}
 
-	transformPosition (path, ops = this.ops) {
+	transformPosition (path, priority = false, ops = this.ops) {
 		if (!path.length) return path
 		const iter = new Iterator(ops)
 		let offset = 0
@@ -337,11 +337,11 @@ export default class Delta {
 					return [Math.max(0, index)]
 				}
 				continue
-			} else if (type === 'insert') {
+			} else if (type === 'insert' && (offset < index || !priority)) {
 				index += length
 			} else if (type === 'retain' && hasSub && offset === index) {
 				const subOps = op.$sub instanceof Array ? op.$sub : (op.$sub.items || op.$sub.text)
-				if (subOps) return [index].concat(this.transformPosition(path.slice(1), subOps))
+				if (subOps) return [index].concat(this.transformPosition(path.slice(1), priority, subOps))
 			}
 			offset += length
 		}

@@ -10,7 +10,7 @@
     "build:es": "rollup -c rollup.config.es.js",
     "build:iife": "rollup -c rollup.config.iife.js",
     "build": "npm run build:cjs && npm run build:es && npm run build:iife",
-    "test": "NODE_ENV=test npm run build:cjs && nyc mocha \"test/**/*.test.js\"",
+    "test": "NODE_ENV=test npm run build:cjs && nyc mocha -b \"test/**/*.test.js\"",
     "lint": "eslint --ext .js src",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
     "prepublishOnly": "npm run build"

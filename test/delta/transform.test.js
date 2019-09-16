@@ -112,6 +112,17 @@ describe('Delta.transform()', () => {
 		expect(b2.transform(a2, false)).to.equalDelta(expected2)
 	})
 
+	it('should transform conflicting appends', function () {
+		const a1 = new Delta().retain(1).insert('b')
+		const b1 = new Delta().retain(1).insert('c')
+		const expected1 = new Delta().retain(1).insert('c')
+		const a2 = new Delta(a1.ops)
+		const b2 = new Delta(b1.ops)
+		const expected2 = new Delta().retain(2).insert('c')
+		expect(a1.transform(b1, false)).to.equalDelta(expected1)
+		expect(a2.transform(b2, true)).to.equalDelta(expected2)
+	})
+
 	it('should transform prepend + append', function () {
 		const a1 = new Delta().insert('aa')
 		const b1 = new Delta().retain(3).insert('bb')

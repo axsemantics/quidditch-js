@@ -69,7 +69,7 @@ class QuidditchClient extends EventEmitter {
 			}
 		}
 
-		const handleAck = function ({ rev }) {
+		const handleAck = function ({ rev }, deferred) {
 			channel.deltaInFlight = null
 			channel.rev = rev
 
@@ -86,11 +86,11 @@ class QuidditchClient extends EventEmitter {
 					}
 				})
 			}
-			return Promise.resolve()
+			deferred.resolve()
 		}
 
 		const sendDelta = (deltaToSend) => {
-			const { id, promise } = this._createRequest()
+			const { id, promise } = this._createRequest(handleAck)
 			channel.deltaInFlight = deltaToSend
 			const payload = ['ot:delta', id, channelName, {
 				delta: deltaToSend.ops,
@@ -98,7 +98,7 @@ class QuidditchClient extends EventEmitter {
 			}]
 			this._send(JSON.stringify(payload))
 
-			return promise.then(handleAck)
+			return promise
 		}
 
 		if (!channel.deltaInFlight) {
@@ -225,10 +225,10 @@ class QuidditchClient extends EventEmitter {
 	}
 
 	// request - response promise matching
-	_createRequest (args) {
+	_createRequest (callback) {
 		const id = this._nextRequestIndex++
 		const deferred = defer()
-		this._openRequests[id] = { deferred, args }
+		this._openRequests[id] = { deferred, callback }
 		return { id, promise: deferred.promise }
 	}
 
@@ -262,7 +262,11 @@ class QuidditchClient extends EventEmitter {
 		if (req === null || req === undefined) {
 			this.emit('warning', `no saved request with id: ${message[1]}`)
 		} else {
-			req.deferred.resolve(message[2])
+			if (req.callback) {
+				req.callback(message[2], req.deferred)
+			} else {
+				req.deferred.resolve(message[2])
+			}
 		}
 	}
 
@@ -325,8 +329,11 @@ class QuidditchClient extends EventEmitter {
 			delta = channel.deltaInFlight.transform(delta)
 		}
 		if (channel.buffer) {
+			const reveicedDelta = delta
 			delta = channel.buffer.delta.transform(delta)
+			channel.buffer.delta = reveicedDelta.transform(channel.buffer.delta, true)
 		}
+
 		return this.emit('ot:delta', channelName, delta)
 	}
 }

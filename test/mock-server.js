@@ -116,7 +116,7 @@ const mock = {
 	handleOtDelta (socket, message) {
 		const channel = message[2]
 		let response
-		if (message[3].delta[0].insert === 'trash') {
+		if (message[3].delta.some(op => op.insert === 'trash')) {
 			response = ['error', message[1], {message: 'trashy request'}]
 		} else {
 			let rev = (mock.otChannels[channel] || 0) + 1

@@ -213,8 +213,74 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should correctly resolve conflicts: Client 1', (done) => {
+		const channel = 'test-conflict'
+		const delta1 = new Delta([{insert: 'a'}])
+		const delta2 = new Delta([{retain: 1}, {insert: 'b'}])
+		const _originalHandler = server.handleOtDelta
+		server.handleOtDelta = function (socket, message) {
+			const {delta, rev} = message[3]
+			if (delta[0].insert === 'a' && rev === 0) {
+				socket.send(JSON.stringify(['success', message[1], {rev: 1}]))
+				socket.send(JSON.stringify(['ot:delta', channel, {delta: [{retain: 1}, {insert: 'c'}], rev: 2}]))
+			} else if (delta[0].retain === 1 && delta[1].insert === 'b' && rev === 1) {
+				socket.send(JSON.stringify(['success', message[1], {rev: 3}]))
+				socket.send(JSON.stringify(['ot:delta', channel, {delta: [{retain: 3}, {insert: 'd'}], rev: 4}]))
+			}
+		}
+		Promise.all([
+			client.sendDelta(channel, delta1),
+			client.sendDelta(channel, delta2),
+			new Promise((resolve) => {
+				client.once('ot:delta', (returnChannel, returnDelta) => {
+					expect(returnDelta).to.equalDelta(new Delta().retain(1).insert('c'))
+					client.once('ot:delta', (returnChannel, returnDelta) => {
+						expect(returnDelta).to.equalDelta(new Delta().retain(3).insert('d'))
+						resolve()
+					})
+				})
+			})
+		]).then(() => {
+			server.handleOtDelta = _originalHandler
+			done()
+		})
+	})
+
+	it('should correctly resolve conflicts: Client 2', (done) => {
+		const channel = 'test-conflict-2'
+		const delta1 = new Delta([{insert: 'c'}])
+		const delta2 = new Delta([{retain: 1}, {insert: 'd'}])
+		const _originalHandler = server.handleOtDelta
+		server.handleOtDelta = function (socket, message) {
+			const {delta, rev} = message[3]
+			if (delta[0].insert === 'c' && rev === 0) {
+				socket.send(JSON.stringify(['ot:delta', channel, {delta: [{insert: 'a'}], rev: 1}]))
+				socket.send(JSON.stringify(['success', message[1], {rev: 2}]))
+			} else if (delta[0].retain === 2 && delta[1].insert === 'd' && rev === 2) {
+				socket.send(JSON.stringify(['ot:delta', channel, {delta: [{retain: 2}, {insert: 'b'}], rev: 3}]))
+				socket.send(JSON.stringify(['success', message[1], {rev: 4}]))
+			}
+		}
+		Promise.all([
+			client.sendDelta(channel, delta1),
+			client.sendDelta(channel, delta2),
+			new Promise((resolve) => {
+				client.once('ot:delta', (returnChannel, returnDelta) => {
+					expect(returnDelta).to.equalDelta(new Delta().insert('a'))
+					client.once('ot:delta', (returnChannel, returnDelta) => {
+						expect(returnDelta).to.equalDelta(new Delta().retain(2).insert('b'))
+						resolve()
+					})
+				})
+			})
+		]).then(() => {
+			server.handleOtDelta = _originalHandler
+			done()
+		})
+	})
+
 	it('should buffer multiple deltas and reject all on error', (done) => {
-		const channel = 'test:123456'
+		const channel = 'test:reject'
 		const deltaInFlight = new Delta([{insert: 'Hello World'}])
 		const moreDelta = new Delta([{retain: 11}, {insert: ', how'}])
 		const evenMoreDelta = new Delta([{insert: 'trash'}])

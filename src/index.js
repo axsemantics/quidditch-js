@@ -21,6 +21,7 @@ class QuidditchClient extends EventEmitter {
 		const defaultConfig = {
 			pingInterval: 5000,
 			joinTimeout: 60000,
+			reconnectDelay: 1000,
 			token: ''
 		}
 		this._config = Object.assign(defaultConfig, config)

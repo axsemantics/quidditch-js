@@ -22,6 +22,7 @@ class QuidditchClient extends EventEmitter {
 			pingInterval: 5000,
 			joinTimeout: 60000,
 			reconnectDelay: 1000,
+			sendSelectInterval: 600,
 			token: ''
 		}
 		this._config = Object.assign(defaultConfig, config)
@@ -35,6 +36,8 @@ class QuidditchClient extends EventEmitter {
 		this._socket.close()
 		clearTimeout(this._joinTimeout)
 		clearTimeout(this._authenticationTimeout)
+		clearTimeout(this._sendSelectTimeout)
+		this._sendSelectTimeout = null
 	}
 
 	call (name, data, opts) {
@@ -115,6 +118,22 @@ class QuidditchClient extends EventEmitter {
 				}
 			}
 			return deferred.promise
+		}
+	}
+
+	sendSelect (reference, data) {
+		const payload = ['user:select', reference]
+		if (data) payload.push(data)
+		if (!this._sendSelectTimeout) {
+			this._send(JSON.stringify(payload))
+			this._sendSelectPayload = null
+			this._sendSelectTimeout = setTimeout(() => {
+				this._sendSelectTimeout = null
+				if (this._sendSelectPayload) this._send(JSON.stringify(this._sendSelectPayload))
+				this._sendSelectPayload = null
+			}, this._config.sendSelectInterval)
+		} else {
+			this._sendSelectPayload = payload
 		}
 	}
 

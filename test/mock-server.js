@@ -9,6 +9,7 @@ const mock = {
 	drop: false,
 	failJoin: false,
 	otChannels: {},
+	messages: [],
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
 		mock.server.on('connection', (socket, upgradeReq) => {
@@ -56,6 +57,7 @@ const mock = {
 	handleMessage (socket, rawMessage) {
 		if (mock.drop) return // fall silent
 		const message = JSON.parse(rawMessage)
+		if (message[0] !== 'ping') mock.messages.push(message)
 		const handlers = {
 			auth: mock.handleAuth,
 			ping: mock.handlePing,

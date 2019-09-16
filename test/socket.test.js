@@ -317,6 +317,29 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should send throttled user:select messages', (done) => {
+		const client = new QuidditchClient(WS_URL, {token: 'hunter2', sendSelectInterval: 100})
+		client.once('joined', () => {
+			server.messages = []
+			client.sendSelect('foo')
+			setTimeout(() => {
+				expect(server.messages).to.deep.equal([['user:select', 'foo']])
+				server.messages = []
+				client.sendSelect('bar', {a: 1, b: 2})
+				client.sendSelect('baz', {c: 2, d: 3})
+				setTimeout(() => {
+					expect(server.messages).to.deep.equal([]) // nothing after 10ms
+					setTimeout(() => {
+						// only last message after 100ms
+						expect(server.messages).to.deep.equal([['user:select', 'baz', {c: 2, d: 3}]])
+						client.close()
+						setTimeout(done, 1)
+					}, 100)
+				}, 10)
+			}, 1)
+		})
+	})
+
 	// it('should not accept random acks', (done) => {
 	// 	client.removeAllListeners('error')
 	// 	client.once('error', () => done())

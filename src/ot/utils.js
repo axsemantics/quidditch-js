@@ -115,7 +115,7 @@ const attributes = {
 	transform: function (a, b, priority) {
 		if (typeof a !== 'object') return b
 		if (typeof b !== 'object') return undefined
-		if (!priority) return b // b simply overwrites us without priority
+		if (priority) return b // b simply overwrites us with priority
 		var attributes = Object.keys(b).reduce(function (attributes, key) {
 			if (a[key] === undefined) attributes[key] = b[key] // null is a valid value
 			return attributes

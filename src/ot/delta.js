@@ -1,4 +1,4 @@
-// lifted from https://github.com/quilljs/delta/blob/master/lib/delta.js
+// adapted from https://github.com/quilljs/delta/blob/master/lib/delta.js
 import diff from 'fast-diff'
 import { getOpLength, attributeOperations, convertOps, isEqual, clone } from './utils'
 import Iterator from './op-iterator'
@@ -52,6 +52,13 @@ const composeSubOntoObject = function ($sub, object) {
 		}
 	}
 	return changes
+}
+
+const checkMappiness = function (op) {
+	return (op.insert && op.$set) || typeof op.retain === 'string' || typeof op.delete === 'string'
+}
+const getOpMapKey = function (op) {
+	return op.insert || op.retain || op.delete
 }
 
 export default class Delta {
@@ -188,22 +195,16 @@ export default class Delta {
 	// apply(apply(S, A), B) = apply(S, compose(A, B)) must hold.
 	compose (otherDelta) {
 		const newDelta = new Delta()
-		const checkSettiness = function (op) {
-			return (op.insert && op.$set) || typeof op.retain === 'string' || typeof op.delete === 'string'
-		}
-		const getOpKey = function (op) {
-			return op.insert || op.retain || op.delete
-		}
-		// if we find a insert with a $set, switch to Map mode
-		if (this.ops.some(checkSettiness) || otherDelta.ops.some(checkSettiness)) {
+		// if we find an op with map operation, switch to map mode
+		if (this.ops.some(checkMappiness) || otherDelta.ops.some(checkMappiness)) {
 			// assume canonical deltas, aka every key is present only once in each delta
 			for (const op of this.ops) {
 				// only add ops not mentioned by otherDelta
-				if (otherDelta.ops.some(o => getOpKey(op) === getOpKey(o))) continue
+				if (otherDelta.ops.some(o => getOpMapKey(op) === getOpMapKey(o))) continue
 				newDelta.push(op)
 			}
 			for (const op of otherDelta.ops) {
-				const thisOp = this.ops.find(o => getOpKey(op) === getOpKey(o))
+				const thisOp = this.ops.find(o => getOpMapKey(op) === getOpMapKey(o))
 				if (thisOp && !op.insert && !op.delete && !thisOp.delete) {
 					let newOp = {}
 					if (thisOp.insert && op.retain) {
@@ -326,48 +327,96 @@ export default class Delta {
 	// produces two operations A' and B' (in an array) such that
 	// `apply(apply(S, A), B') = apply(apply(S, B), A')`. This function is the
 	// heart of OT.
+	// hasPriority prioritizes inserts and attributes of this delta
+	// hasPriority assumes this delta happened BEFORE the applying delta
 	transform (otherDelta, hasPriority) {
-		const thisIter = new Iterator(this.ops)
-		const otherIter = new Iterator(otherDelta.ops)
 		const newDelta = new Delta()
 
-		while (thisIter.hasNext() || otherIter.hasNext()) {
-			if (thisIter.peekType() === 'insert' && (hasPriority || otherIter.peekType() !== 'insert')) {
-				newDelta.retain(getOpLength(thisIter.next()))
-			} else if (otherIter.peekType() === 'insert') {
-				newDelta.push(otherIter.next())
-			} else {
-				const length = Math.min(thisIter.peekLength(), otherIter.peekLength())
-				const thisOp = thisIter.next(length)
-				const otherOp = otherIter.next(length)
-				if (thisOp.delete) {
-					// Our delete either makes their delete redundant or removes their retain
-					continue
-				} else if (otherOp.delete) {
-					newDelta.push(otherOp)
-				} else {
-					// We retain either their retain or insert
-					let newSubs
-					if (thisOp.$sub && otherOp.$sub) {
-						const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
-						const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
-						newSubs = {}
-						for (const [key, value] of Object.entries(otherSubs)) {
-							if (thisSubs[key]) {
-								newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), hasPriority).ops
-							} else {
-								newSubs[key] = clone(value)
-							}
+		// if we find an op with map operation, switch to map mode
+		if (this.ops.some(checkMappiness) || otherDelta.ops.some(checkMappiness)) {
+			// let firstOps, secondOps
+			// if (hasPriority) { // we go first
+			// 	firstOps = this.op
+			// 	secondOps = otherDelta.op
+			// } else { // other goes first
+			// 	firstOps = otherDelta.op
+			// 	secondOps = this.op
+			// }
+			for (const otherOp of otherDelta.ops) {
+				const thisOp = this.ops.find(o => getOpMapKey(otherOp) === getOpMapKey(o))
+				if (thisOp) {
+					// drop op that would have been overridden
+					if (thisOp.insert && !hasPriority) continue
+					// drop double delete or retain that would write on deleted or op that would be deleted later
+					if (thisOp.delete && (!otherOp.insert || !hasPriority)) continue
+					if (thisOp.retain && otherOp.insert && !hasPriority) {
+						const newOp = {}
+						newOp.insert = otherOp.insert
+						// other insert would have overriden previous insert => play this retain on other insert
+						newOp.$set = attributeOperations.compose(otherOp.$set, thisOp.$set, false)
+						if (otherOp.$sub) {
+							Object.assign(newOp.$set, composeSubOntoObject(otherOp.$sub, thisOp.$set))
 						}
-						newSubs = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
-					} else if (otherOp.$sub) {
-						newSubs = clone(otherOp.$sub)
+						newDelta.push(newOp)
+					} else if (thisOp.retain && otherOp.retain && !hasPriority) {
+						const newOp = {}
+						newOp.insert = otherOp.retain
+						// other insert would have overriden previous insert => play this retain on other insert
+						newOp.$set = attributeOperations.transform(thisOp.$set, otherOp.$set, false)
+						if (otherOp.$sub) {
+							// TODO
+						}
+						newDelta.push(newOp)
+					} else {
+						newDelta.push(otherOp)
 					}
-					newDelta.retain(length, {
-						attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority),
-						set: attributeOperations.transform(thisOp.$set, otherOp.$set, hasPriority),
-						subOps: newSubs
-					})
+				} else {
+					// no counterpart, just use as is
+					newDelta.push(otherOp)
+				}
+			}
+		} else {
+			const thisIter = new Iterator(this.ops)
+			const otherIter = new Iterator(otherDelta.ops)
+
+			while (thisIter.hasNext() || otherIter.hasNext()) {
+				if (thisIter.peekType() === 'insert' && (hasPriority || otherIter.peekType() !== 'insert')) {
+					newDelta.retain(getOpLength(thisIter.next()))
+				} else if (otherIter.peekType() === 'insert') {
+					newDelta.push(otherIter.next())
+				} else {
+					const length = Math.min(thisIter.peekLength(), otherIter.peekLength())
+					const thisOp = thisIter.next(length)
+					const otherOp = otherIter.next(length)
+					if (thisOp.delete) {
+						// Our delete either makes their delete redundant or removes their retain
+						continue
+					} else if (otherOp.delete) {
+						newDelta.push(otherOp)
+					} else {
+						// We retain either their retain or insert
+						let newSubs
+						if (thisOp.$sub && otherOp.$sub) {
+							const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+							const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+							newSubs = {}
+							for (const [key, value] of Object.entries(otherSubs)) {
+								if (thisSubs[key]) {
+									newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), hasPriority).ops
+								} else {
+									newSubs[key] = clone(value)
+								}
+							}
+							newSubs = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+						} else if (otherOp.$sub) {
+							newSubs = clone(otherOp.$sub)
+						}
+						newDelta.retain(length, {
+							attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority),
+							set: attributeOperations.transform(thisOp.$set, otherOp.$set, hasPriority),
+							subOps: newSubs
+						})
+					}
 				}
 			}
 		}

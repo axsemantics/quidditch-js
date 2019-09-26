@@ -62,25 +62,21 @@ describe('Delta.transform()', () => {
 	})
 
 	it('should transform retain + retain', function () {
-		const a1 = new Delta().retain(1, {attributes: { color: 'blue' }})
-		const b1 = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
-		const a2 = new Delta().retain(1, {attributes: { color: 'blue' }})
-		const b2 = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
+		const a = new Delta().retain(1, {attributes: { color: 'blue' }})
+		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
 		const expected1 = new Delta().retain(1, {attributes: { bold: true }})
 		const expected2 = new Delta()
-		expect(a1.transform(b1, true)).to.equalDelta(expected1)
-		expect(b2.transform(a2, true)).to.equalDelta(expected2)
+		expect(a.transform(b, true)).to.equalDelta(expected1)
+		expect(b.transform(a, true)).to.equalDelta(expected2)
 	})
 
 	it('retain + retain without priority', function () {
-		const a1 = new Delta().retain(1, {attributes: { color: 'blue' }})
-		const b1 = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
+		const a = new Delta().retain(1, {attributes: { color: 'blue' }})
+		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
 		const expected1 = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
-		const a2 = new Delta().retain(1, {attributes: { color: 'blue' }})
-		const b2 = new Delta().retain(1, {attributes: { bold: true, color: 'red' }})
 		const expected2 = new Delta().retain(1, {attributes: { color: 'blue' }})
-		expect(a1.transform(b1, false)).to.equalDelta(expected1)
-		expect(b2.transform(a2, false)).to.equalDelta(expected2)
+		expect(a.transform(b, false)).to.equalDelta(expected1)
+		expect(b.transform(a, false)).to.equalDelta(expected2)
 	})
 
 	it('should transform retain + delete', function () {

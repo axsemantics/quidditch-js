@@ -61,6 +61,12 @@ describe('insert()', function () {
 		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
 	})
 
+	it('insert(text, {attributes: null})', function () {
+		const delta = new Delta().insert('test', {attributes: null})
+		expect(delta.ops.length).to.equal(1)
+		expect(delta.ops[0]).to.equalDelta({ insert: 'test' })
+	})
+
 	// it('insert(embed)', function () {
 	// 	const delta = new Delta().insert(1)
 	// 	expect(delta.ops.length).to.equal(1)
@@ -77,7 +83,7 @@ describe('insert()', function () {
 	it('insert object', function () {
 		const object = { t: 'container' }
 		const attr = { alt: 'Quill' }
-		const delta = new Delta().insert(object, attr)
+		const delta = new Delta().insert(object, {attributes: attr})
 		expect(delta.ops.length).to.equal(1)
 		expect(delta.ops[0]).to.equalDelta({ insert: object, attributes: attr })
 	})
@@ -92,7 +98,7 @@ describe('insert()', function () {
 	})
 
 	it('insert(text, attributes)', function () {
-		const delta = new Delta().insert('test', { bold: true })
+		const delta = new Delta().insert('test', {attributes: { bold: true }})
 		expect(delta.ops.length).to.equal(1)
 		expect(delta.ops[0]).to.equalDelta({ insert: 'test', attributes: { bold: true } })
 	})
@@ -209,7 +215,7 @@ describe('push()', function () {
 	})
 
 	it('push(op) consecutive texts with matching attributes', function () {
-		const delta = new Delta().insert('a', { bold: true })
+		const delta = new Delta().insert('a', {attributes: { bold: true }})
 		delta.push({ insert: 'b', attributes: { bold: true } })
 		expect(delta.ops.length).to.equal(1)
 		expect(delta.ops[0]).to.equalDelta({ insert: 'ab', attributes: { bold: true } })
@@ -223,7 +229,7 @@ describe('push()', function () {
 	})
 
 	it('push(op) consecutive texts with mismatched attributes', function () {
-		const delta = new Delta().insert('a', { bold: true })
+		const delta = new Delta().insert('a', {attributes: { bold: true }})
 		delta.push({ insert: 'b' })
 		expect(delta.ops.length).to.equal(2)
 	})

@@ -74,4 +74,9 @@ describe('op iterator', function () {
 		expect(iter.next(1)).to.deep.equal({ retain: 1 })
 		expect(iter.next(2)).to.deep.equal({ retain: 2 })
 	})
+
+	it('next with Set', function () {
+		const iter = new OpIterator(new Delta().insert('a-key', {set: {a: 1}}).ops)
+		expect(iter.next()).to.deep.equal({ insert: 'a-key', $set: {a: 1} })
+	})
 })

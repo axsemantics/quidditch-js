@@ -17,18 +17,59 @@ const composeOplist = function (a, b) {
 	}
 }
 
+const composeSubs = function (thisOp, otherOp) {
+	let $sub
+	if (thisOp.$sub && otherOp.$sub) {
+		const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
+		const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
+		const newSubs = Object.assign({}, thisSubs)
+		for (const [key, value] of Object.entries(otherSubs)) {
+			newSubs[key] = composeOplist(thisSubs[key], value)
+		}
+		$sub = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
+	} else if (thisOp.$sub || otherOp.$sub) {
+		$sub = composeOplist(thisOp.$sub, otherOp.$sub)
+	}
+	if ($sub && !Object.keys($sub).length)
+		return
+	return $sub
+}
+
+const composeSubOntoObject = function ($sub, object) {
+	const changes = {}
+	const typeMark = object._t
+	if (!SUBTYPES[typeMark]) throw new TypeError(`Invalid item type ${typeMark}`)
+	const typeSpec = SUBTYPES[typeMark]
+	// TODO typechecking
+	const otherSubs = $sub instanceof Array ? {items: $sub} : $sub || {}
+	for (const [key, value] of Object.entries(otherSubs)) {
+		if (typeSpec[key] === BASE_TYPES.DELTA_STR) {
+			changes[key] = new DeltaString(new Delta(value).apply(object[key] || ''))
+		} else if (typeSpec[key] === BASE_TYPES.DELTA || typeSpec[key] === BASE_TYPES.DELTA_MAP) {
+			changes[key] = composeOplist(object[key], value)
+		} else {
+			throw new TypeError(` ${typeMark}.${key} is not a delta`)
+		}
+	}
+	return changes
+}
+
 export default class Delta {
 	constructor (ops = []) {
 		convertOps(ops)
 		this.ops = ops
 	}
 
-	insert (text, attributes) {
+	insert (text, args) {
 		// TODO canonical op ordering
+		const {attributes, set} = args ?? {}
 		if (text.length === 0) return this
 		const op = { insert: text }
-		if (attributes != null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
+		if (attributes !== null && typeof attributes === 'object' && Object.keys(attributes).length > 0) {
 			op.attributes = attributes
+		}
+		if (set !== null && typeof set === 'object' && Object.keys(set).length > 0) {
+			op.$set = set
 		}
 		return this.push(op)
 	}
@@ -146,9 +187,48 @@ export default class Delta {
 	// and a pair of consecutive operations A and B,
 	// apply(apply(S, A), B) = apply(S, compose(A, B)) must hold.
 	compose (otherDelta) {
+		const newDelta = new Delta()
+		const checkSettiness = function (op) {
+			return (op.insert && op.$set) || typeof op.retain === 'string' || typeof op.delete === 'string'
+		}
+		const getOpKey = function (op) {
+			return op.insert || op.retain || op.delete
+		}
+		// if we find a insert with a $set, switch to Map mode
+		if (this.ops.some(checkSettiness) || otherDelta.ops.some(checkSettiness)) {
+			// assume canonical deltas, aka every key is present only once in each delta
+			for (const op of this.ops) {
+				// only add ops not mentioned by otherDelta
+				if (otherDelta.ops.some(o => getOpKey(op) === getOpKey(o))) continue
+				newDelta.push(op)
+			}
+			for (const op of otherDelta.ops) {
+				const thisOp = this.ops.find(o => getOpKey(op) === getOpKey(o))
+				if (thisOp && !op.insert && !op.delete && !thisOp.delete) {
+					let newOp = {}
+					if (thisOp.insert && op.retain) {
+						newOp.insert = thisOp.insert
+						newOp.$set = attributeOperations.compose(thisOp.$set, op.$set, false)
+						if (op.$sub) {
+							Object.assign(newOp.$set, composeSubOntoObject(op.$sub, thisOp.$set))
+						}
+					} else if (thisOp.retain && op.retain) {
+						newOp.retain = thisOp.retain
+						if (thisOp.$set || op.$set) {
+							newOp.$set = attributeOperations.compose(thisOp.$set, op.$set, true)
+						}
+						const $sub = composeSubs(thisOp, op)
+						if ($sub) newOp.$sub = $sub
+					}
+					newDelta.push(newOp)
+				} else {
+					newDelta.push(op)
+				}
+			}
+			return newDelta.chop()
+		}
 		const thisIter = new Iterator(this.ops)
 		const otherIter = new Iterator(otherDelta.ops)
-		const newDelta = new Delta()
 		while (thisIter.hasNext() || otherIter.hasNext()) {
 			if (otherIter.peekType() === 'insert') { // new insert always gets used
 				newDelta.push(otherIter.next())
@@ -165,40 +245,15 @@ export default class Delta {
 						if (thisOp.$set || otherOp.$set) {
 							newOp.$set = attributeOperations.compose(thisOp.$set, otherOp.$set, true)
 						}
-						if (thisOp.$sub && otherOp.$sub) {
-							const thisSubs = thisOp.$sub instanceof Array ? {items: thisOp.$sub} : thisOp.$sub || {}
-							const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
-							const newSubs = Object.assign({}, thisSubs)
-							for (const [key, value] of Object.entries(otherSubs)) {
-								newSubs[key] = composeOplist(thisSubs[key], value)
-							}
-							newOp.$sub = newSubs.items && Object.keys(newSubs).length === 1 ? newSubs.items : newSubs
-						} else if (thisOp.$sub || otherOp.$sub) {
-							newOp.$sub = composeOplist(thisOp.$sub, otherOp.$sub)
-						}
-						if (newOp.$sub && !Object.keys(newOp.$sub).length) {
-							delete newOp.$sub
-						}
+						const $sub = composeSubs(thisOp, otherOp)
+						if ($sub) newOp.$sub = $sub
 					} else {
 						if (thisOp.insert instanceof DeltaString || (!otherOp.$sub && !otherOp.$set)) {
 							newOp.insert = thisOp.insert // old insert overrides new retain
 						} else {
-							const typeMark = thisOp.insert._t
-							if (!SUBTYPES[typeMark]) throw new TypeError(`Invalid item type ${typeMark}`)
-							const typeSpec = SUBTYPES[typeMark]
-							// TODO typechecking
 							newOp.insert = attributeOperations.compose(thisOp.insert, otherOp.$set, false)
 							if (otherOp.$sub) {
-								const otherSubs = otherOp.$sub instanceof Array ? {items: otherOp.$sub} : otherOp.$sub || {}
-								for (const [key, value] of Object.entries(otherSubs)) {
-									if (typeSpec[key] === BASE_TYPES.DELTA_STR) {
-										newOp.insert[key] = new DeltaString(new Delta(value).apply(thisOp.insert[key] || ''))
-									} else if (typeSpec[key] === BASE_TYPES.DELTA) {
-										newOp.insert[key] = composeOplist(thisOp.insert[key], value)
-									} else {
-										throw new TypeError(` ${typeMark}.${key} is not a delta`)
-									}
-								}
+								Object.assign(newOp.insert, composeSubOntoObject(otherOp.$sub, thisOp.insert))
 							}
 						}
 					}

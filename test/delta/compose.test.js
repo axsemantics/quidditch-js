@@ -18,7 +18,7 @@ describe('Delta.compose()', () => {
 	it('should compose insert + retain', function () {
 		const a = new Delta().insert('A')
 		const b = new Delta().retain(1, {attributes: { bold: true, color: 'red', font: null }})
-		const expected = new Delta().insert('A', { bold: true, color: 'red' })
+		const expected = new Delta().insert('A', {attributes: { bold: true, color: 'red' }})
 		expect(a.compose(b)).to.equalDelta(expected)
 	})
 
@@ -103,7 +103,7 @@ describe('Delta.compose()', () => {
 	})
 
 	it('should remove all attributes', function () {
-		const a = new Delta().insert('A', { bold: true })
+		const a = new Delta().insert('A', {attributes: { bold: true }})
 		const b = new Delta().retain(1, {attributes: { bold: null }})
 		const expected = new Delta().insert('A')
 		expect(a.compose(b)).to.equalDelta(expected)
@@ -112,11 +112,11 @@ describe('Delta.compose()', () => {
 	it('shoulb be immutable', function () {
 		const attr1 = { bold: true }
 		const attr2 = { bold: true }
-		const a1 = new Delta().insert('Test', attr1)
-		const a2 = new Delta().insert('Test', attr1)
+		const a1 = new Delta().insert('Test', {attributes: attr1})
+		const a2 = new Delta().insert('Test', {attributes: attr1})
 		const b1 = new Delta().retain(1, {attributes: { color: 'red' }}).delete(2)
 		const b2 = new Delta().retain(1, {attributes: { color: 'red' }}).delete(2)
-		const expected = new Delta().insert('T', { color: 'red', bold: true }).insert('t', attr1)
+		const expected = new Delta().insert('T', {attributes: { color: 'red', bold: true }}).insert('t', {attributes: attr1})
 		expect(a1.compose(b1)).to.equalDelta(expected)
 		expect(a1).to.equalDelta(a2)
 		expect(b1).to.equalDelta(b2)

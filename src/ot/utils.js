@@ -41,7 +41,7 @@ export function getOpLength (op) {
 export function convertOps (ops) {
 	const convertOp = function (op) {
 		// convert strings to DeltaString
-		if (typeof op.insert === 'string') {
+		if (typeof op.insert === 'string' && !op.$set) {
 			op.insert = new DeltaString(op.insert)
 			return op
 		}

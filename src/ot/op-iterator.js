@@ -18,7 +18,7 @@ export default class OpIterator {
 		if (op.insert instanceof DeltaString) {
 			return op.insert.substr(offset, length)
 		}
-		if (typeof op.insert === 'object') {
+		if (typeof op.insert === 'object' || (typeof op.insert === 'string' && op.$set)) {
 			return op.insert
 		}
 	}
@@ -50,13 +50,13 @@ export default class OpIterator {
 			if (nextOp.attributes) {
 				retOp.attributes = nextOp.attributes
 			}
+			if (nextOp.$set) {
+				retOp.$set = nextOp.$set
+			}
 			if (typeof nextOp.retain === 'number') {
 				retOp.retain = length
 				if (nextOp.$sub) {
 					retOp.$sub = nextOp.$sub
-				}
-				if (nextOp.$set) {
-					retOp.$set = nextOp.$set
 				}
 			}
 			if (nextOp.insert) {

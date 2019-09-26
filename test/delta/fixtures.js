@@ -16,6 +16,13 @@ setSubtypes({
 		container_type: String,
 		text: BASE_TYPES.DELTA_STR,
 		lemma: BASE_TYPES.DELTA_STR
+	},
+	mapParent: {
+		name: String,
+		items: BASE_TYPES.DELTA_MAP
+	},
+	mapItem: {
+		itemDelta: BASE_TYPES.DELTA
 	}
 })
 

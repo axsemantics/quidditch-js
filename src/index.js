@@ -5,6 +5,7 @@ import DeltaString from './ot/string.js'
 import OpIterator from './ot/op-iterator.js'
 import { SUBTYPES, setSubtypes, BASE_TYPES } from './ot/subtypes.js'
 import { clone } from './ot/utils'
+import { applyOpsToState } from './ot/state'
 
 const defer = function () {
 	const deferred = {}
@@ -338,4 +339,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES, clone as cloneOps }
+export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES, clone as cloneOps, applyOpsToState }

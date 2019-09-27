@@ -327,9 +327,9 @@ export default class Delta {
 	// produces two operations A' and B' (in an array) such that
 	// `apply(apply(S, A), B') = apply(apply(S, B), A')`. This function is the
 	// heart of OT.
-	// hasPriority prioritizes inserts and attributes of this delta
-	// hasPriority assumes this delta happened BEFORE the applying delta
-	transform (otherDelta, hasPriority) {
+	// otherHappenedLater prioritizes inserts and attributes of this delta
+	// otherHappenedLater assumes this delta happened BEFORE the applying delta
+	transform (otherDelta, otherHappenedLater) {
 		const newDelta = new Delta()
 
 		// if we find an op with map operation, switch to map mode
@@ -346,10 +346,10 @@ export default class Delta {
 				const thisOp = this.ops.find(o => getOpMapKey(otherOp) === getOpMapKey(o))
 				if (thisOp) {
 					// drop op that would have been overridden
-					if (thisOp.insert && !hasPriority) continue
+					if (thisOp.insert && !otherHappenedLater) continue
 					// drop double delete or retain that would write on deleted or op that would be deleted later
-					if (thisOp.delete && (!otherOp.insert || !hasPriority)) continue
-					if (thisOp.retain && otherOp.insert && !hasPriority) {
+					if (thisOp.delete && (!otherOp.insert || !otherHappenedLater)) continue
+					if (thisOp.retain && otherOp.insert && !otherHappenedLater) {
 						const newOp = {}
 						newOp.insert = otherOp.insert
 						// other insert would have overriden previous insert => play this retain on other insert
@@ -358,7 +358,7 @@ export default class Delta {
 							Object.assign(newOp.$set, composeSubOntoObject(otherOp.$sub, thisOp.$set))
 						}
 						newDelta.push(newOp)
-					} else if (thisOp.retain && otherOp.retain && !hasPriority) {
+					} else if (thisOp.retain && otherOp.retain && !otherHappenedLater) {
 						const newOp = {}
 						newOp.insert = otherOp.retain
 						// other insert would have overriden previous insert => play this retain on other insert
@@ -380,7 +380,7 @@ export default class Delta {
 			const otherIter = new Iterator(otherDelta.ops)
 
 			while (thisIter.hasNext() || otherIter.hasNext()) {
-				if (thisIter.peekType() === 'insert' && (hasPriority || otherIter.peekType() !== 'insert')) {
+				if (thisIter.peekType() === 'insert' && (otherHappenedLater || otherIter.peekType() !== 'insert')) {
 					newDelta.retain(getOpLength(thisIter.next()))
 				} else if (otherIter.peekType() === 'insert') {
 					newDelta.push(otherIter.next())
@@ -402,7 +402,7 @@ export default class Delta {
 							newSubs = {}
 							for (const [key, value] of Object.entries(otherSubs)) {
 								if (thisSubs[key]) {
-									newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), hasPriority).ops
+									newSubs[key] = new Delta(thisSubs[key]).transform(new Delta(value), otherHappenedLater).ops
 								} else {
 									newSubs[key] = clone(value)
 								}
@@ -412,8 +412,8 @@ export default class Delta {
 							newSubs = clone(otherOp.$sub)
 						}
 						newDelta.retain(length, {
-							attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, hasPriority),
-							set: attributeOperations.transform(thisOp.$set, otherOp.$set, hasPriority),
+							attributes: attributeOperations.transform(thisOp.attributes, otherOp.attributes, otherHappenedLater),
+							set: attributeOperations.transform(thisOp.$set, otherOp.$set, otherHappenedLater),
 							subOps: newSubs
 						})
 					}

@@ -22,7 +22,7 @@ const checkMappiness = function (op) {
 	return (op.insert && op.$set) || typeof op.retain === 'string' || typeof op.delete === 'string'
 }
 
-const applySub = function (current, $sub, setFunc, trackedObjects) {
+const applySub = function (current, $sub, setFunc, deleteFunc, trackedObjects) {
 	const typeMark = current._t
 	if (!SUBTYPES[typeMark]) throw new TypeError(`Invalid item type ${typeMark}`)
 	const typeSpec = SUBTYPES[typeMark]
@@ -31,7 +31,7 @@ const applySub = function (current, $sub, setFunc, trackedObjects) {
 		if (typeSpec[key] === BASE_TYPES.DELTA_STR) {
 			setFunc(current, key, new DeltaString(new Delta(value).apply(current[key] || '')))
 		} else if (typeSpec[key] === BASE_TYPES.DELTA || typeSpec[key] === BASE_TYPES.DELTA_MAP) {
-			const results = applyOpsToState(current[key], value)
+			const results = applyOpsToState(current[key], value, setFunc, deleteFunc)
 			// merge tracked objects into parent
 			for (const [type, {added, removed}] of Object.entries(results)) {
 				if (trackedObjects[type]) {
@@ -80,7 +80,7 @@ export function applyOpsToState (state, ops, setFunc = defaultSetFunc, deleteFun
 					}
 				}
 				if (op.$sub) {
-					applySub(state[op.retain], op.$sub, setFunc, trackedObjects)
+					applySub(state[op.retain], op.$sub, setFunc, deleteFunc, trackedObjects)
 				}
 			} else if (typeof op.delete === 'string') {
 				trackObject('removed', state[op.delete])
@@ -191,7 +191,7 @@ export function applyOpsToState (state, ops, setFunc = defaultSetFunc, deleteFun
 					}
 				}
 				if (op.$sub) {
-					applySub(current.insert, op.$sub, setFunc, trackedObjects)
+					applySub(current.insert, op.$sub, setFunc, deleteFunc, trackedObjects)
 				}
 				// apply attributes to complex insert. Since length is always 1, we need no splitting
 				if (op.attributes) {

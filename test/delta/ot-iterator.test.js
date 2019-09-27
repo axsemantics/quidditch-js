@@ -8,7 +8,7 @@ const { Delta, OpIterator } = require('../../dist/quidditch.js')
 
 describe('op iterator', function () {
 	beforeEach(function () {
-		this.delta = new Delta().insert('Hello', { bold: true }).retain(3).delete(4)
+		this.delta = new Delta().insert('Hello', {attributes: { bold: true }}).retain(3).delete(4)
 	})
 
 	it('hasNext() true', function () {

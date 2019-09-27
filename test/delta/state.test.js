@@ -258,9 +258,9 @@ describe('delta applyOpsToState', function () {
 	})
 
 	it('should not merge with different attributes when deleting container', function () {
-		const state = new Delta().insert('ABCD').insert({_t: 'container', text: 'CD'}, {attributes: {head: true}}).insert('EF', {head: true})
+		const state = new Delta().insert('ABCD').insert({_t: 'container', text: 'CD'}, {attributes: {head: true}}).insert('EF', {attributes: {head: true}})
 		const delta = new Delta().retain(4).delete(1)
-		const expected = new Delta().insert('ABCD').insert('EF', {head: true})
+		const expected = new Delta().insert('ABCD').insert('EF', {attributes: {head: true}})
 
 		applyOpsToState(state.ops, delta.ops)
 		expect(state.ops).to.equalDelta(expected.ops)
@@ -306,13 +306,48 @@ describe('delta applyOpsToState', function () {
 
 		const trackedObjects = applyOpsToState(state.ops, delta.ops)
 		expect(trackedObjects.container.added).to.equalDelta([
-			{insert: {_t: 'container', id: 4, text: 'BC'}},
-			{insert: {_t: 'container', id: 5, text: 'G'}},
-			{insert: {_t: 'container', id: 6, text: 'P'}}
+			{_t: 'container', id: 4, text: 'BC'},
+			{_t: 'container', id: 5, text: 'G'},
+			{_t: 'container', id: 6, text: 'P'}
 		])
 		expect(trackedObjects.container.removed).to.equalDelta([
-			{insert: {_t: 'container', id: 1, text: 'CD'}},
-			{insert: {_t: 'container', id: 2, text: 'G'}}
+			{_t: 'container', id: 1, text: 'CD'},
+			{_t: 'container', id: 2, text: 'G'}
 		])
+	})
+
+	it('should apply map changes to a plain map', function () {
+		const state = new Delta().insert({
+			_t: 'mapParent',
+			items: {
+				'a-key': {_id: 'a-key', _t: 'mapItem', a: 1},
+				'c-key': {_id: 'c-key', _t: 'mapItem', itemDelta: new Delta().insert('A').ops},
+				'd-key': {_id: 'd-key', _t: 'mapItem', d: 1}
+			}
+		})
+
+		const delta = new Delta().retain(1, {subOps: {items: new Delta()
+			.insert('b-key', {set: {_t: 'mapItem', b: 1}})
+			.retain('a-key', {set: {b: 2}})
+			.retain('c-key', {subOps: {itemDelta: new Delta().retain(1).insert('B').ops}})
+			.delete('d-key')
+			.ops}})
+		const expected = new Delta().insert({
+			_t: 'mapParent',
+			items: {
+				'a-key': {_id: 'a-key', _t: 'mapItem', a: 1, b: 2},
+				'b-key': {_id: 'b-key', _t: 'mapItem', b: 1},
+				'c-key': {_id: 'c-key', _t: 'mapItem', itemDelta: new Delta().insert('AB').ops}
+			}
+		})
+
+		const trackedObjects = applyOpsToState(state.ops, delta.ops)
+		expect(state.ops).to.equalDelta(expected.ops)
+		expect(trackedObjects).to.equalDelta({
+			mapItem: {
+				added: [{_id: 'b-key', _t: 'mapItem', b: 1}],
+				removed: [{_id: 'd-key', _t: 'mapItem', d: 1}]
+			}
+		})
 	})
 })

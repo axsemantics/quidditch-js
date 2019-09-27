@@ -11,6 +11,8 @@
     "build:iife": "rollup -c rollup.config.iife.js",
     "build": "npm run build:cjs && npm run build:es && npm run build:iife",
     "test": "NODE_ENV=test npm run build:cjs && nyc mocha \"test/**/*.test.js\"",
+    "test:dev": "NODE_ENV=test npm run build:cjs && mocha -b \"test/**/*.test.js\"",
+    "test:watch": "nodemon --ignore dist/ --exec npm run test:dev",
     "lint": "eslint --ext .js src",
     "coveralls": "nyc report --reporter=text-lcov | coveralls",
     "prepublishOnly": "npm run build"

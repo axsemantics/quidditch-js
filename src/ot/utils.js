@@ -38,6 +38,7 @@ export function getOpLength (op) {
 	}
 }
 
+// TODO test
 export function convertOps (ops) {
 	const convertOp = function (op) {
 		// convert strings to DeltaString
@@ -46,8 +47,10 @@ export function convertOps (ops) {
 			return op
 		}
 
-		if (op.$sub?.items) {
-			convertOps(op.$sub.items)
+		if (op.$sub && !(op.$sub instanceof Array)) {
+			for (const key of Object.keys(op.$sub)) {
+				convertOps(op.$sub[key])
+			}
 			return op
 		}
 
@@ -62,7 +65,7 @@ export function convertOps (ops) {
 				if (typeSpec[key] === BASE_TYPES.DELTA_STR && !(value instanceof DeltaString)) {
 					op.insert[key] = new DeltaString(value)
 				}
-				if (typeSpec[key] === BASE_TYPES.DELTA) {
+				if (typeSpec[key] === BASE_TYPES.DELTA || typeSpec[key] === BASE_TYPES.DELTA_MAP) {
 					convertOps(op.insert[key])
 				}
 			}

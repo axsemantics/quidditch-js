@@ -321,7 +321,10 @@ class QuidditchClient extends EventEmitter {
 		}
 		this.emit('joined', message[1])
 		// start pinging
-		this._ping(this._socket)
+		const socket = this._socket
+		setTimeout(() => {
+			if (socket === this._socket) this._ping(socket)
+		}, this._config.pingInterval)
 	}
 
 	_handleJoinError (message) {

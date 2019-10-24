@@ -87,10 +87,12 @@ describe('Quidditch Client', () => {
 	})
 
 	it('should ping', (done) => {
+		server.pings = 0
 		let counter = 0
 		const count = () => {
 			client.once('pong', () => {
 				counter++
+				expect(counter).to.equal(server.pings)
 				if (counter >= 3) done()
 				else count()
 			})
@@ -337,6 +339,26 @@ describe('Quidditch Client', () => {
 					}, 100)
 				}, 10)
 			}, 1)
+		})
+	})
+
+	it('should not send ping for old connection', (done) => {
+		server.pings = 0
+		const client = new QuidditchClient(WS_URL, {token: 'hunter2', pingInterval: 80, reconnectDelay: 1})
+		client.once('joined', () => {
+			setTimeout(() => {
+				expect(server.pings).to.equal(0) // first ping should be defered by one pingInterval
+				server.joinSilence = true
+				client._socket.close() // but we're closing the socket in this state
+				client.once('reconnecting', () => setTimeout(() => {
+					expect(client.socketState).to.equal('open')
+					expect(client._joinTimeout).to.exist
+					expect(server.pings).to.equal(0) // has neither sent the previous nor a new ping
+					server.joinSilence = false
+					client.close()
+					setTimeout(done, 1)
+				}, 100))
+			}, 10)
 		})
 	})
 

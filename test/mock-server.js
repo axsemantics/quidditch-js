@@ -10,6 +10,7 @@ const mock = {
 	failJoin: false,
 	otChannels: {},
 	messages: [],
+	pings: 0,
 	init (options, cb) {
 		mock.server = new Websocket.Server({port: options.port, clientTracking: true}, cb)
 		mock.server.on('connection', (socket, upgradeReq) => {
@@ -94,6 +95,7 @@ const mock = {
 		socket.send(JSON.stringify(response))
 	},
 	handlePing (socket, message) {
+		mock.pings++
 		if (mock.silence) return
 		const response = ['pong', message[1]]
 		if (socket.readyState !== 1) // socket still open?

@@ -122,6 +122,7 @@ describe('Quidditch Client', () => {
 			done('should not succeed')
 		}).catch((error) => {
 			expect(error.message).to.equal('NOT A NUMBER!')
+			expect(error.apiError.message).to.equal('NOT A NUMBER!')
 			done()
 		})
 	})

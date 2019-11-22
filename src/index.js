@@ -5,6 +5,7 @@ import DeltaString from './ot/string.js'
 import OpIterator from './ot/op-iterator.js'
 import { SUBTYPES, setSubtypes, BASE_TYPES } from './ot/subtypes.js'
 import { clone } from './ot/utils'
+import APIError from './api-error'
 
 const defer = function () {
 	const deferred = {}
@@ -272,7 +273,7 @@ class QuidditchClient extends EventEmitter {
 		if (req === null || req === undefined) {
 			this.emit('error', message[message.length - 1])
 		} else {
-			req.deferred.reject(new Error(message[2].error || message[2].message) || message[2])
+			req.deferred.reject(new APIError(message[2]))
 		}
 	}
 
@@ -360,4 +361,4 @@ class QuidditchClient extends EventEmitter {
 	}
 }
 
-export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES, clone as cloneOps }
+export { Delta, DeltaString, QuidditchClient, OpIterator, SUBTYPES, setSubtypes, BASE_TYPES, clone as cloneOps, APIError }

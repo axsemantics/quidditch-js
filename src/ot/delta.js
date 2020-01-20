@@ -141,6 +141,22 @@ export default class Delta {
 		return this.ops.map(predicate)
 	}
 
+	// returns a normalized clone (basically throws all ops through delta.push recursivly)
+	normalize () {
+		const normalizedDelta = new Delta()
+		for (let op of this.ops) {
+			op = clone(op)
+			if (op.insert?.items) {
+				op.insert.items = new Delta(op.insert.items).normalize().ops
+			}
+			if (op.$sub) {
+				op.$sub = new Delta(op.$sub).normalize().ops
+			}
+			normalizedDelta.push(op)
+		}
+		return normalizedDelta
+	}
+
 	// Compose merges two consecutive operations into one operation, that
 	// preserves the changes of both. Or, in other words, for each input string S
 	// and a pair of consecutive operations A and B,

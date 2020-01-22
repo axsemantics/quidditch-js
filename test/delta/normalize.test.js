@@ -28,6 +28,19 @@ describe('Delta normalize', () => {
 		expect(delta1.normalize().ops).to.equalDelta(delta2.ops)
 	})
 
+	it('should deeply normalize inserts in multiple sub ops', () => {
+		const delta1 = new Delta().retain(1, {subOps: {
+			foo: [{insert: 'ab'}, {insert: 'c'}],
+			bar: [{insert: 'd'}, {insert: 'ef'}]
+		}})
+		const delta2 = new Delta().retain(1, {subOps: {
+			foo: [{insert: 'abc'}],
+			bar: [{insert: 'def'}]
+		}})
+
+		expect(delta1.normalize().ops).to.equalDelta(delta2.ops)
+	})
+
 	it('should normalize retains', () => {
 		const delta1 = new Delta([{retain: 2}, {retain: 2}])
 		const delta2 = new Delta().retain(4)

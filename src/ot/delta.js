@@ -150,7 +150,13 @@ export default class Delta {
 				op.insert.items = new Delta(op.insert.items).normalize().ops
 			}
 			if (op.$sub) {
-				op.$sub = new Delta(op.$sub).normalize().ops
+				if (op.$sub instanceof Array) {
+					op.$sub = new Delta(op.$sub).normalize().ops
+				} else {
+					for (const [key, ops] of Object.entries(op.$sub)) {
+						op.$sub[key] = new Delta(ops).normalize().ops
+					}
+				}
 			}
 			normalizedDelta.push(op)
 		}

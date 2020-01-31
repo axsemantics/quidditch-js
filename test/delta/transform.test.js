@@ -265,5 +265,9 @@ describe('Delta.transformPosition()', () => {
 		const d3 = new Delta().retain(1, {subOps: new Delta().retain(3).insert('ab')})
 		expect(d3.transformPosition([0, 3, 1], false)).eql([0, 5, 1])
 		expect(d3.transformPosition([0, 3, 1], true)).eql([0, 3, 1])
+
+		const d4 = new Delta().retain(1, {subOps: new Delta().retain(3).retain(1, {subOps: {named: [{delete: 3}]}})})
+		expect(d4.transformPosition([0, 3, 'named', 2])).eql([0, 3, 'named', 0])
+		expect(d4.transformPosition([0, 3, 'named', 5])).eql([0, 3, 'named', 2])
 	})
 })

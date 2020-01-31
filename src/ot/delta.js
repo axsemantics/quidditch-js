@@ -361,9 +361,15 @@ export default class Delta {
 				continue
 			} else if (type === 'insert' && (offset < index || !priority)) {
 				index += length
-			} else if (type === 'retain' && hasSub && offset === index) {
-				const subOps = op.$sub instanceof Array ? op.$sub : (op.$sub.items || op.$sub.text)
-				if (subOps) return [index].concat(this.transformPosition(path.slice(1), priority, subOps))
+			} else if (hasSub && offset === index) {
+				if (typeof path[1] === 'string') {
+					const subOps = op.$sub[path[1]]
+					return path.slice(0, 2).concat(this.transformPosition(path.slice(2), priority, subOps))
+				} else {
+					const subOps = op.$sub instanceof Array ? op.$sub : (op.$sub.items || op.$sub.text)
+					if (subOps)
+						return [index].concat(this.transformPosition(path.slice(1), priority, subOps))
+				}
 			}
 			offset += length
 		}

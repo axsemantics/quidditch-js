@@ -1,5 +1,6 @@
 import babel from 'rollup-plugin-babel'
-import inject from 'rollup-plugin-inject'
+import inject from '@rollup/plugin-inject'
+
 export default {
 	input: 'src/index.js',
 	output: {

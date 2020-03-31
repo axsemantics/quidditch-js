@@ -8,7 +8,7 @@ export default {
 	output: {
 		name: 'QuidditchClient',
 		format: 'iife',
-		file: 'dist/quidditch.browser.js'
+		file: 'dist/quidditch.iife.js'
 	},
 	plugins: [
 		babel({

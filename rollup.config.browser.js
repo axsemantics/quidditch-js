@@ -1,5 +1,4 @@
 import babel from 'rollup-plugin-babel'
-import builtins from 'rollup-plugin-node-builtins'
 
 export default {
 	input: 'src/index.js',
@@ -7,6 +6,6 @@ export default {
 		format: 'cjs',
 		file: 'dist/quidditch.browser.js'
 	},
-	plugins: [babel(), builtins()],
-	external: ['fast-diff', 'lodash/cloneDeep', 'lodash/isEqual', 'lodash/cloneDeepWith', 'lodash/isEqualWith']
+	plugins: [babel()],
+	external: ['events', 'fast-diff', 'lodash/cloneDeep', 'lodash/isEqual', 'lodash/cloneDeepWith', 'lodash/isEqualWith']
 }

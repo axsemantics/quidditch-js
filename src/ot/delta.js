@@ -259,7 +259,7 @@ export default class Delta {
 		const thisIter = new Iterator(this.ops)
 		const otherIter = new Iterator(otherDelta.ops)
 		diffResult.forEach(function (component) {
-			let length = component[1].length
+			let length = Array.from(component[1]).length
 			while (length > 0) {
 				let opLength = 0
 				switch (component[0]) {

@@ -94,4 +94,17 @@ describe('diff()', function () {
 			a.diff(b)
 		}).to.throw()
 	})
+
+	it('emoji', function () {
+		const a = new Delta().insert('🌀-🌀-🌀')
+		const b = new Delta().insert('🔥-🌀-🌀')
+		const c = new Delta().insert('🌀-🔥-🌀')
+		const d = new Delta().insert('🌀-🌀-🔥')
+		const expected1 = new Delta().delete(1).insert('🔥')
+		const expected2 = new Delta().retain(2).delete(1).insert('🔥')
+		const expected3 = new Delta().retain(4).delete(1).insert('🔥')
+		expect(a.diff(b)).to.equalDelta(expected1)
+		expect(a.diff(c)).to.equalDelta(expected2)
+		expect(a.diff(d)).to.equalDelta(expected3)
+	})
 })

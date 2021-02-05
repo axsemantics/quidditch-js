@@ -19,7 +19,8 @@ export default class DeltaString {
 		Object.defineProperties(this, {
 			nativeString: {value: nativeString},
 			characterArray: {value: characterArray},
-			length: {value: characterArray.length}
+			length: {value: characterArray.length},
+			__v_skip: {value: true}
 		})
 		return new Proxy(this, {
 			get (target, prop, receiver) {

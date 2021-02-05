@@ -72,6 +72,7 @@ describe('DeltaString', () => {
 		const string = new DeltaString('fire🔥fox🦊unicorn🦄yay')
 		expect(string.substring(5, 9)).to.equalDelta('fox🦊')
 		expect(string.substring(5)).to.equalDelta('fox🦊unicorn🦄yay')
+		expect(string.substring(0, 0)).to.equalDelta('')
 		// TODO negatives, inverted params
 		expect(string.characterArray.length).to.equal(20)
 	})

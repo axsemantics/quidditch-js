@@ -168,7 +168,7 @@ class QuidditchClient extends EventEmitter {
 			for (const channelName of Object.keys(this._otChannels)) {
 				this._closeChannel(channelName)
 			}
-			this.emit('closed') // why past tense? because the socket is already closed and not currently closing
+			this.emit('closed', event) // why past tense? because the socket is already closed and not currently closing
 			if (!this._normalClose) {
 				setTimeout(() => {
 					this.emit('reconnecting')
@@ -218,7 +218,6 @@ class QuidditchClient extends EventEmitter {
 
 	_handlePingTimeout () {
 		this._socket.close()
-		this.emit('closed')
 	}
 
 	_processMessage (rawMessage) {

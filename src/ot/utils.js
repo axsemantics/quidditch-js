@@ -29,8 +29,8 @@ export function clone (obj) {
 }
 
 export function getOpLength (op) {
-	if (typeof op['delete'] === 'number') {
-		return op['delete']
+	if (typeof op.delete === 'number') {
+		return op.delete
 	} else if (typeof op.retain === 'number') {
 		return op.retain
 	} else {
@@ -103,7 +103,7 @@ const attributes = {
 	diff (a, b) {
 		if (typeof a !== 'object') a = {}
 		if (typeof b !== 'object') b = {}
-		var attributes = Object.keys(a).concat(Object.keys(b)).reduce(function (attributes, key) {
+		const attributes = Object.keys(a).concat(Object.keys(b)).reduce(function (attributes, key) {
 			if (!isEqual(a[key], b[key])) {
 				attributes[key] = b[key] === undefined ? null : b[key]
 			}
@@ -116,7 +116,7 @@ const attributes = {
 		if (typeof a !== 'object') return b
 		if (typeof b !== 'object') return undefined
 		if (!priority) return b // b simply overwrites us without priority
-		var attributes = Object.keys(b).reduce(function (attributes, key) {
+		const attributes = Object.keys(b).reduce(function (attributes, key) {
 			if (a[key] === undefined) attributes[key] = b[key] // null is a valid value
 			return attributes
 		}, {})

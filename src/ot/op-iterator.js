@@ -79,7 +79,7 @@ export default class OpIterator {
 
 	peekType () {
 		if (this.ops[this.index]) {
-			if (typeof this.ops[this.index]['delete'] === 'number') {
+			if (typeof this.ops[this.index].delete === 'number') {
 				return 'delete'
 			} else if (typeof this.ops[this.index].retain === 'number') {
 				return 'retain'

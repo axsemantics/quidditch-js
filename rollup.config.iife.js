@@ -1,7 +1,7 @@
-import babel from 'rollup-plugin-babel'
-import builtins from 'rollup-plugin-node-builtins'
-import resolve from 'rollup-plugin-node-resolve'
-import commonjs from 'rollup-plugin-commonjs'
+import babel from '@rollup/plugin-babel'
+import node from 'rollup-plugin-polyfill-node'
+import resolve from '@rollup/plugin-node-resolve'
+import commonjs from '@rollup/plugin-commonjs'
 
 export default {
 	input: 'src/index.js',
@@ -12,9 +12,10 @@ export default {
 	},
 	plugins: [
 		babel({
+			babelHelpers: 'bundled',
 			ignore: ['node_modules']
 		}),
-		builtins(),
+		node(),
 		resolve({
 			browser: true,
 			jsnext: true,

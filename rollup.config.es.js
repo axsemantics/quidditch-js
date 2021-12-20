@@ -1,4 +1,4 @@
-import babel from 'rollup-plugin-babel'
+import babel from '@rollup/plugin-babel'
 
 export default {
 	input: 'src/index.js',
@@ -6,6 +6,10 @@ export default {
 		format: 'es',
 		file: 'dist/quidditch.es.js'
 	},
-	plugins: [babel()],
+	plugins: [
+		babel({
+			babelHelpers: 'bundled'
+		})
+	],
 	external: ['events', 'fast-diff', 'deep-equal', 'lodash/cloneDeep', 'lodash/isEqual', 'lodash/cloneDeepWith', 'lodash/isEqualWith']
 }

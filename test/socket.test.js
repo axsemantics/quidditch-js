@@ -136,6 +136,16 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should not forward errors after call timed out', (done) => {
+		client.call('generic:delayed-error', {number: null}, {timeout: 200}).then(() => {
+			done('should not succeed')
+		}).catch((error) => {
+			expect(error.message).to.equal('call timed out')
+			// error throwing is detected by the client fixture
+			setTimeout(done, 200)
+		})
+	})
+
 	it('should send a delta and handle the ack', (done) => {
 		const channel = 'test:1234'
 		client.sendDelta(channel, new Delta([{insert: 'Hello World'}])).then(() => done())

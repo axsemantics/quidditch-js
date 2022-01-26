@@ -56,6 +56,7 @@ class QuidditchClient extends EventEmitter {
 		this._send(JSON.stringify(payload))
 		setTimeout(() => {
 			if (this._openRequests[id]) {
+				this._timeoutedRequests[id] = true
 				const timeoutedRequest = this._popPendingRequest(id)
 				timeoutedRequest.deferred.reject(new Error('call timed out'))
 			}
@@ -178,6 +179,7 @@ class QuidditchClient extends EventEmitter {
 		})
 		this._socket.addEventListener('message', this._processMessage.bind(this))
 		this._openRequests = {} // save deferred promises from requests waiting for reponse
+		this._timeoutedRequests = {} // save timed out request ids so we can drop responses
 		this._nextRequestIndex = 1 // autoincremented rohrpost message id
 		this._authenticationTimeout = null
 		this._joinTimeout = null
@@ -235,7 +237,12 @@ class QuidditchClient extends EventEmitter {
 		if (actionHandlers[message[0]] === undefined) {
 			this.emit('message', message)
 		} else {
-			actionHandlers[message[0]](message)
+			// drop message if request has already timed out client-side
+			if (this._timeoutedRequests[message[1]]) {
+				delete this._timeoutedRequests[message[1]]
+			} else {
+				actionHandlers[message[0]](message)
+			}
 		}
 		this.emit('log', {
 			direction: 'receive',

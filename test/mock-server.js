@@ -63,6 +63,7 @@ const mock = {
 			auth: mock.handleAuth,
 			ping: mock.handlePing,
 			'generic:increment': mock.handleIncrement,
+			'generic:delayed-error': mock.handleDelayedError,
 			'ot:delta': mock.handleOtDelta
 		}
 		if (handlers[message[0]]) {
@@ -116,6 +117,11 @@ const mock = {
 	},
 	handleTimeout (socket, message) {
 		// just let it rot
+	},
+	handleDelayedError (socket, message) {
+		setTimeout(() => {
+			socket.send(JSON.stringify(['error', message[1], {message: 'DELAYED ERROR'}]))
+		}, 300)
 	},
 	handleOtDelta (socket, message) {
 		const channel = message[2]

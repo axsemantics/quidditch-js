@@ -1,4 +1,4 @@
-import babel from 'rollup-plugin-babel'
+import babel from '@rollup/plugin-babel'
 import inject from '@rollup/plugin-inject'
 
 export default {
@@ -7,9 +7,14 @@ export default {
 		format: 'cjs',
 		file: 'dist/quidditch.js'
 	},
-	plugins: [babel(), inject({
-		include: 'src/index.js',
-		WebSocket: 'ws'
-	})],
+	plugins: [
+		babel({
+			babelHelpers: 'bundled'
+		}),
+		inject({
+			include: 'src/index.js',
+			WebSocket: 'ws'
+		})
+	],
 	external: ['ws', 'events', 'fast-diff', 'lodash/cloneDeep', 'lodash/isEqual', 'lodash/cloneDeepWith', 'lodash/isEqualWith']
 }

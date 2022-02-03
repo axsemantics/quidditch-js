@@ -73,7 +73,7 @@ export default class Delta {
 
 			// Since it does not matter if we insert before or after deleting at the same index,
 			// always prefer to insert first
-			if (typeof lastOp['delete'] === 'number' && newOp.insert != null) {
+			if (typeof lastOp.delete === 'number' && newOp.insert != null) {
 				index -= 1
 				lastOp = this.ops[index - 1]
 				if (!lastOp) {
@@ -270,18 +270,19 @@ export default class Delta {
 					case diff.DELETE:
 						opLength = Math.min(length, thisIter.peekLength())
 						thisIter.next(opLength)
-						newDelta['delete'](opLength)
+						newDelta.delete(opLength)
 						break
-					case diff.EQUAL:
+					case diff.EQUAL: {
 						opLength = Math.min(thisIter.peekLength(), otherIter.peekLength(), length)
 						const thisOp = thisIter.next(opLength)
 						const otherOp = otherIter.next(opLength)
 						if (isEqual(thisOp.insert, otherOp.insert)) {
 							newDelta.retain(opLength, {attributes: attributeOperations.diff(thisOp.attributes, otherOp.attributes)})
 						} else {
-							newDelta.push(otherOp)['delete'](opLength)
+							newDelta.push(otherOp).delete(opLength)
 						}
 						break
+					}
 				}
 				length -= opLength
 			}

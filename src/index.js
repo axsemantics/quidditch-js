@@ -29,6 +29,7 @@ class QuidditchClient extends EventEmitter {
 		this._config = Object.assign(defaultConfig, config)
 		this._url = url
 		this._otChannels = {} // keyed by channel name: {deltaInFlight, buffer, rev}
+		this._currentView = null
 		this._createSocket()
 	}
 
@@ -137,6 +138,13 @@ class QuidditchClient extends EventEmitter {
 		} else {
 			this._sendSelectPayload = payload
 		}
+	}
+
+	sendView (reference) {
+		const payload = JSON.stringify(['user:view', reference])
+		if (payload === this._currentView) return
+		if (this.socketState === 'open') this._send(payload)
+		this._currentView = payload
 	}
 
 	closeChannels (prefix) {
@@ -326,7 +334,11 @@ class QuidditchClient extends EventEmitter {
 				this._closeChannel(channelName)
 			}
 		}
+		const viewToResend = this._currentView
+		this._currentView = null
 		this.emit('joined', message[1])
+		// if _currentView is set again, sendView() was called from `joined` handler. Discard.
+		if (viewToResend && !this._currentView) this._send(this.viewToResend)
 		// start pinging
 		const socket = this._socket
 		setTimeout(() => {

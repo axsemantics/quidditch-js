@@ -353,6 +353,20 @@ describe('Quidditch Client', () => {
 		})
 	})
 
+	it('should send user:view messages', (done) => {
+		const client = new QuidditchClient(WS_URL, {token: 'hunter2'})
+		client.once('joined', () => {
+			server.messages = []
+			client.sendView(['foo'])
+			client.sendView(['foo'])
+			setTimeout(() => {
+				expect(server.messages).to.deep.equal([['user:view', ['foo']]])
+				client.close()
+				done()
+			}, 10)
+		})
+	})
+
 	it('should not send ping for old connection', (done) => {
 		server.pings = 0
 		const client = new QuidditchClient(WS_URL, {token: 'hunter2', pingInterval: 80, reconnectDelay: 1})

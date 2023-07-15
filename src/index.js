@@ -338,7 +338,7 @@ class QuidditchClient extends EventEmitter {
 		this._currentView = null
 		this.emit('joined', message[1])
 		// if _currentView is set again, sendView() was called from `joined` handler. Discard.
-		if (viewToResend && !this._currentView) this._send(this.viewToResend)
+		if (viewToResend && !this._currentView) this._send(viewToResend)
 		// start pinging
 		const socket = this._socket
 		setTimeout(() => {

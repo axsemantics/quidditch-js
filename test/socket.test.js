@@ -353,20 +353,6 @@ describe('Quidditch Client', () => {
 		})
 	})
 
-	it('should send user:view messages', (done) => {
-		const client = new QuidditchClient(WS_URL, {token: 'hunter2'})
-		client.once('joined', () => {
-			server.messages = []
-			client.sendView(['foo'])
-			client.sendView(['foo'])
-			setTimeout(() => {
-				expect(server.messages).to.deep.equal([['user:view', ['foo']]])
-				client.close()
-				done()
-			}, 10)
-		})
-	})
-
 	it('should not send ping for old connection', (done) => {
 		server.pings = 0
 		const client = new QuidditchClient(WS_URL, {token: 'hunter2', pingInterval: 80, reconnectDelay: 1})
@@ -442,5 +428,26 @@ describe('Quidditch Client', () => {
 		})
 		client.once('open', () => done('should not open again'))
 		client.close()
+	})
+
+	it('should send user:view messages', (done) => {
+		server.drop = false
+		const client = new QuidditchClient(WS_URL, {token: 'hunter2', reconnectDelay: 1})
+		client.once('joined', () => {
+			server.messages = []
+			client.sendView(['foo'])
+			client.sendView(['foo'])
+			setTimeout(() => {
+				expect(server.messages).to.deep.equal([['user:view', ['foo']]])
+				server.messages = []
+				// resend last view on reconnect
+				client._socket.close()
+				client.once('joined', () => setTimeout(() => {
+					expect(server.messages).to.deep.equal([['auth', {token: 'hunter2'}], ['user:view', ['foo']]])
+					client.close()
+					client.once('closed', () => done())
+				}, 10))
+			}, 10)
+		})
 	})
 })

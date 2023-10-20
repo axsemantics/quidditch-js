@@ -357,7 +357,7 @@ export default class Delta {
 				index -= length
 				if (offset > index) {
 					// passed the original position with a delete. If there are deeper levels, we are booted out
-					return [Math.max(0, index)]
+					return [offset]
 				}
 				continue
 			} else if (type === 'insert' && (offset < index || !priority)) {

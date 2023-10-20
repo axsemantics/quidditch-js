@@ -238,23 +238,28 @@ describe('Delta.transformPosition()', () => {
 		expect(new Delta().delete(2).transformPosition([5])).eql([3])
 		expect(new Delta().delete(5).transformPosition([5])).eql([0])
 		expect(new Delta().delete(7).transformPosition([5])).eql([0])
-		expect(new Delta().retain(5).delete(3).transformPosition([5])).eql([2])
+		expect(new Delta().retain(5).delete(3).transformPosition([5])).eql([5])
 		expect(new Delta().retain(6).delete(3).transformPosition([5])).eql([5])
 		expect(new Delta().insert('a').transformPosition([5])).eql([6])
 		expect(new Delta().retain(4).insert('bcd').transformPosition([5])).eql([8])
 		expect(new Delta().retain(5).insert('bcd').transformPosition([5])).eql([8])
 		expect(new Delta().retain(5).insert('bcd').transformPosition([5], true)).eql([5])
 		expect(new Delta().retain(7).insert('d').transformPosition([5])).eql([5])
+		expect(new Delta().retain(3).delete(10).transformPosition([9])).eql([3])
 	})
 
 	it('should transform nested positions', function () {
+		expect(new Delta().retain(3).delete(1).transformPosition([4, 4])).eql([3, 4])
+		expect(new Delta().retain(3).delete(2).transformPosition([4, 4])).eql([3])
+		expect(new Delta().retain(3).delete(4).transformPosition([4, 4])).eql([3])
+
 		expect(new Delta().delete(2).transformPosition([3, 2, 3])).eql([1, 2, 3])
 		expect(new Delta().insert('foo').transformPosition([1, 2, 3])).eql([4, 2, 3])
 		expect(new Delta().delete(2).transformPosition([1, 2, 3])).eql([0])
 
 		const d1 = new Delta().insert('barbaz').retain(2, {subOps: new Delta().insert('foo').delete(3)})
-		expect(d1.transformPosition([1, 2, 3])).eql([7, 2])
-		expect(d1.transformPosition([0, 0, 3])).eql([6, 0])
+		expect(d1.transformPosition([1, 2, 3])).eql([7, 3])
+		expect(d1.transformPosition([0, 0, 3])).eql([6, 3])
 		expect(d1.transformPosition([1, 3, 3])).eql([7, 3, 3])
 		expect(d1.transformPosition([3, 4, 5])).eql([9, 4, 5])
 

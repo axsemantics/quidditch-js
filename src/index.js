@@ -20,7 +20,8 @@ class QuidditchClient extends EventEmitter {
 	constructor (url, config) {
 		super()
 		const defaultConfig = {
-			pingInterval: 5000,
+			pingInterval: 10000,
+			callTimeout: 10000,
 			joinTimeout: 60000,
 			reconnectDelay: 1000,
 			sendSelectInterval: 600,
@@ -44,7 +45,7 @@ class QuidditchClient extends EventEmitter {
 
 	call (name, data, opts) {
 		const options = {
-			timeout: 5000
+			timeout: this._config.callTimeout
 		}
 		Object.assign(options, opts)
 

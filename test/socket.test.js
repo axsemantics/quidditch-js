@@ -48,6 +48,19 @@ describe('Quidditch Client', () => {
 		client.once('ping', () => done('should not ping'))
 	})
 
+	it('should set default call timeout', (done) => {
+		client = new QuidditchClient(WS_URL, {callTimeout: 100, token: 'hunter2'})
+		client.once('joined', () => {
+			client.call('generic:invalid', {number: null}).then(() => {
+				done('should not succeed')
+			}).catch((error) => {
+				expect(error.message).to.equal('call timed out')
+				client.close()
+				done()
+			})
+		})
+	}).timeout(1500)
+
 	it('should connect, and fail on wrong authentication', (done) => {
 		client = new QuidditchClient(WS_URL, {token: 'hunter3'})
 		client.on('error', () => {
